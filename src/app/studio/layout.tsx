@@ -1,4 +1,9 @@
-export default function RootLayout({
+export const metadata = {
+  title: 'Sanity Studio',
+  description: 'Painel Administrativo',
+}
+
+export default function StudioLayout({
   children,
 }: {
   children: React.ReactNode
