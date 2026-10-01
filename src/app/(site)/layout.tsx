@@ -15,6 +15,26 @@ const mainFont = Outfit({
 export const metadata: Metadata = {
   title: "Artur Dias | Fotografia",
   description: "Portfólio de fotografia de eventos, arquitetura, música e ensaios em Brasília.",
+  keywords: ["Fotografia", "Fotógrafo em Brasília", "Eventos", "Arquitetura", "Ensaios", "Música", "Shows"],
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    url: "/",
+    siteName: "Artur Dias Fotografia",
+    title: "Artur Dias | Fotografia",
+    description: "Portfólio de fotografia de eventos, arquitetura, música e ensaios em Brasília.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export default function SiteLayout({
