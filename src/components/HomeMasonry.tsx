@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from "next/link";
+import Image from "next/image";
 import VideoCard from "@/components/VideoCard";
 import { urlForImage } from "@/sanity/lib/image";
 
@@ -77,14 +78,18 @@ export default function HomeMasonry({ items }: { items: any[] }) {
             const aspectClass = isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
 
             return (
-              <Link href={`/categoria/${item._id}`} key={item._id} className="group relative w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all">
-                <div className={`w-full ${aspectClass}`}>
+              <Link data-cursor="VER" href={`/categoria/${item._id}`} key={item._id} className="group relative w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all">
+                <div className={`w-full relative ${aspectClass}`}>
                   {item.categoryCover ? (
-                    <img 
-                      src={urlForImage(item.categoryCover).url()} 
-                      alt={item.title}
-                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                    />
+                    <div className="absolute inset-0 w-full h-full">
+                      <Image 
+                        src={urlForImage(item.categoryCover).url()} 
+                        alt={item.title}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-1000 group-hover:scale-105"
+                      />
+                    </div>
                   ) : (
                     <div className="w-full h-full bg-gray-200 flex items-center justify-center text-xs text-gray-400">Sem foto de capa</div>
                   )}

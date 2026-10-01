@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
+import { useInView, motion, AnimatePresence } from 'framer-motion';
 
 type VideoItem = {
   _id: string;
@@ -23,20 +25,29 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
   const [isHovered, setIsHovered] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const nativeVideoRef = useRef<HTMLVideoElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(cardRef, { amount: 0.5 });
+  const [isMobile, setIsMobile] = useState(false);
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-    if (nativeVideoRef.current) {
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const shouldPlay = isHovered || (isMobile && isInView);
+
+  useEffect(() => {
+    if (shouldPlay && nativeVideoRef.current) {
       nativeVideoRef.current.play().catch(() => {});
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    if (nativeVideoRef.current) {
+    } else if (!shouldPlay && nativeVideoRef.current) {
       nativeVideoRef.current.pause();
     }
-  };
+  }, [shouldPlay]);
+
+  const handleMouseEnter = () => setIsHovered(true);
+  const handleMouseLeave = () => setIsHovered(false);
 
   const isNative = video.videoType === 'Arquivo Nativo (Upload)';
   const isYouTube = video.videoType === 'Link do YouTube';
@@ -44,7 +55,10 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
 
   return (
     <>
-      <div 
+      <motion.div 
+        layoutId={`video-card-${video._id}`}
+        ref={cardRef}
+        data-cursor="PLAY"
         className="group relative w-full h-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -52,11 +66,15 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
       >
         <div className={`w-full relative ${aspectClass}`}>
           {/* Capa estática */}
-          <img 
-            src={video.coverImage} 
-            alt={video.title}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 z-10 ${isHovered ? 'opacity-0' : 'opacity-100'} group-hover:scale-105`}
-          />
+          <div className={`absolute inset-0 w-full h-full transition-opacity duration-500 z-10 ${shouldPlay ? 'opacity-0' : 'opacity-100'}`}>
+            <Image 
+              src={video.coverImage} 
+              alt={video.title}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className="object-cover group-hover:scale-105 transition-transform duration-1000"
+            />
+          </div>
 
           {/* Player no Fundo (Rodando mudo ao passar o mouse) */}
           <div className="absolute inset-0 w-full h-full z-0 overflow-hidden bg-black pointer-events-none">
@@ -70,7 +88,7 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
                 playsInline
               />
             )}
-            {isYouTube && youtubeId && isHovered && (
+            {isYouTube && youtubeId && shouldPlay && (
               <div className="w-[150%] h-[150%] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                 <iframe 
                   src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${youtubeId}`}
@@ -88,49 +106,62 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
             <svg className="w-16 h-16 text-white drop-shadow-2xl opacity-90 transition-transform duration-300 group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* MODAL FULLSCREEN PARA ASSISTIR COM ÁUDIO */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 md:p-10 backdrop-blur-md"
-          onClick={() => setIsOpen(false)}
-        >
-          <button 
-            className="absolute top-6 right-6 text-white text-4xl hover:text-gray-300 transition-colors z-[110]"
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 md:p-10 backdrop-blur-md"
             onClick={() => setIsOpen(false)}
           >
-            &times;
-          </button>
-          
-          <div 
-            className="w-full h-full max-w-6xl max-h-[85vh] flex flex-col relative bg-black shadow-2xl rounded-sm overflow-hidden"
-            onClick={(e) => e.stopPropagation()} // Impede que o clique no vídeo feche o modal
-          >
-            <div className="flex-1 w-full bg-black relative flex items-center justify-center">
-              {isNative && video.videoFileUrl && (
-                <video 
-                  src={video.videoFileUrl}
-                  className="absolute inset-0 w-full h-full object-contain"
-                  controls
-                  autoPlay
-                />
-              )}
-              {isYouTube && youtubeId && (
-                <iframe 
-                  src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0`}
-                  allow="autoplay; fullscreen"
-                  className="absolute inset-0 w-full h-full border-0"
-                />
-              )}
-            </div>
+            {/* AMBIENT MODE (GLOW) */}
+            <motion.div 
+              layoutId={`video-glow-${video._id}`}
+              className="absolute inset-0 max-w-6xl max-h-[85vh] m-auto opacity-30 blur-3xl"
+              style={{ backgroundImage: `url(${video.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+            />
+
+            <button 
+              className="absolute top-6 right-6 text-white text-4xl hover:text-gray-300 transition-colors z-[110]"
+              onClick={() => setIsOpen(false)}
+            >
+              &times;
+            </button>
             
-            <div className="w-full bg-black text-white p-4 md:p-6 text-center border-t border-white/10 shrink-0">
-              <h2 className="text-lg md:text-2xl font-bold tracking-widest uppercase">{video.title}</h2>
-            </div>
-          </div>
-        </div>
-      )}
+            <motion.div 
+              layoutId={`video-card-${video._id}`}
+              className="w-full h-full max-w-6xl max-h-[85vh] flex flex-col relative bg-black shadow-2xl rounded-sm overflow-hidden z-10"
+              onClick={(e) => e.stopPropagation()} // Impede que o clique no vídeo feche o modal
+            >
+              <div className="flex-1 w-full bg-black relative flex items-center justify-center">
+                {isNative && video.videoFileUrl && (
+                  <video 
+                    src={video.videoFileUrl}
+                    className="absolute inset-0 w-full h-full object-contain"
+                    controls
+                    autoPlay
+                  />
+                )}
+                {isYouTube && youtubeId && (
+                  <iframe 
+                    src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0`}
+                    allow="autoplay; fullscreen"
+                    className="absolute inset-0 w-full h-full border-0"
+                  />
+                )}
+              </div>
+              
+              <div className="w-full bg-black text-white p-4 md:p-6 text-center border-t border-white/10 shrink-0">
+                <h2 className="text-lg md:text-2xl font-bold tracking-widest uppercase">{video.title}</h2>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 type Gallery = {
   _id: string;
@@ -64,6 +65,7 @@ export default function LatestWorksCarousel({ galleries }: { galleries: Gallery[
           <Link 
             key={gallery._id} 
             href={`/galeria/${gallery._id}`}
+            data-cursor="VER"
             className="flex flex-col flex-none w-[75vw] sm:w-[45vw] md:w-[30vw] lg:w-[18vw] snap-start group cursor-pointer"
           >
             {/* Título fixo acima da foto */}
@@ -72,14 +74,17 @@ export default function LatestWorksCarousel({ galleries }: { galleries: Gallery[
             </h3>
             
             {/* Foto de capa */}
-            <div className="w-full aspect-[4/5] bg-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
+            <div className="relative w-full aspect-[4/5] bg-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
               {gallery.coverImageUrl ? (
-                <img 
-                  src={gallery.coverImageUrl} 
-                  alt={gallery.title}
-                  className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                  loading="lazy"
-                />
+                <div className="absolute inset-0 w-full h-full">
+                  <Image 
+                    src={gallery.coverImageUrl} 
+                    alt={gallery.title}
+                    fill
+                    sizes="(max-width: 640px) 75vw, (max-width: 768px) 45vw, 30vw"
+                    className="object-cover transition-transform duration-1000 group-hover:scale-105"
+                  />
+                </div>
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">Sem capa</div>
               )}
