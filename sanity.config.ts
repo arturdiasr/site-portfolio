@@ -2,6 +2,7 @@ import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
 import {media} from 'sanity-plugin-media'
 import {schema} from './src/sanity/schemaTypes'
+import {MovePhotosTool} from './src/sanity/tools/MovePhotosTool'
 
 export default defineConfig({
   basePath: '/studio',
@@ -25,4 +26,11 @@ export default defineConfig({
   schema: {
     types: schema.types,
   },
+  tools: [
+    {
+      name: 'move-photos',
+      title: 'Organizar Fotos',
+      component: MovePhotosTool,
+    }
+  ]
 })
