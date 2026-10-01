@@ -19,6 +19,12 @@ export const galleryType = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
+      name: 'workDate',
+      title: 'Mês e Ano do Trabalho (Ex: Agosto 2026)',
+      description: 'Aparecerá discretamente na sessão de Últimos Trabalhos.',
+      type: 'string',
+    }),
+    defineField({
       name: 'coverImage',
       title: 'Foto de Capa',
       description: 'Você pode subir uma foto aqui OU marcar uma das fotos da galeria abaixo como "Usar como Capa" (o site dará preferência para a foto marcada abaixo).',

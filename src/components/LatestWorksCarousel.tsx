@@ -6,6 +6,7 @@ import Link from 'next/link';
 type Gallery = {
   _id: string;
   title: string;
+  workDate?: string;
   coverImageUrl: string;
 };
 
@@ -83,6 +84,13 @@ export default function LatestWorksCarousel({ galleries }: { galleries: Gallery[
                 <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">Sem capa</div>
               )}
             </div>
+            
+            {/* Data discreta abaixo da foto */}
+            {gallery.workDate && (
+              <p className="text-[10px] md:text-xs text-gray-400 text-center mt-3 uppercase tracking-wider">
+                {gallery.workDate}
+              </p>
+            )}
           </Link>
         ))}
       </div>
