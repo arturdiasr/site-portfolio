@@ -50,17 +50,15 @@ export default async function Portfolio() {
       {items.length === 0 ? (
         <p className="text-center text-gray-500 py-20">Nenhum item encontrado. Crie categorias ou vídeos no Painel /studio.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 auto-rows-max">
+        <MasonryGrid>
           {items.map((item: any) => {
             
             // LÓGICA PARA VÍDEOS
             if (item._type === 'featuredVideo') {
-              const isLandscape = item.format === 'Horizontal (ex: YouTube/Cinema)';
-              const gridSpanClass = isLandscape ? "sm:col-span-2" : "col-span-1";
-              const aspectClass = isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
+              const aspectClass = item.format === 'Horizontal (ex: YouTube/Cinema)' ? "aspect-[3/2]" : "aspect-[4/5]";
               
               return (
-                <div className={`${gridSpanClass}`} key={item._id}>
+                <div className="mb-6 break-inside-avoid" key={item._id}>
                   <VideoCard 
                     video={{
                       ...item,
@@ -74,13 +72,12 @@ export default async function Portfolio() {
 
             // LÓGICA PARA CATEGORIAS
             const isLandscape = item.categoryAspect && item.categoryAspect > 1.1;
-            const gridSpanClass = isLandscape ? "sm:col-span-2" : "col-span-1";
             const aspectClass = isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
 
             return (
-              <Link href={`/categoria/${item._id}`} key={item._id} className={`group relative w-full h-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all ${gridSpanClass}`}>
+              <Link href={`/categoria/${item._id}`} key={item._id} className={`group relative mb-6 break-inside-avoid w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all`}>
                 
-                <div className={`w-full h-full ${aspectClass}`}>
+                <div className={`w-full ${aspectClass}`}>
                   {item.categoryCover ? (
                     <img 
                       src={urlForImage(item.categoryCover).url()} 
@@ -102,7 +99,7 @@ export default async function Portfolio() {
               </Link>
             );
           })}
-        </div>
+        </MasonryGrid>
       )}
 
       {/* Sessão de Últimos Trabalhos (Carrossel) */}
