@@ -15,9 +15,3 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-
-@media (min-width: 768px) {
-  body, a, button, input, textarea, select, [data-cursor] {
-    cursor: none !important;
-  }
-}

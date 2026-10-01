@@ -5,7 +5,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppWidget from "@/components/WhatsAppWidget";
 import ScrollToTop from "@/components/ScrollToTop";
-import CustomCursor from "@/components/CustomCursor";
 
 // Fonte "Outfit" traz um ar muito moderno, jovem e geométrico
 const mainFont = Outfit({
@@ -52,7 +51,6 @@ export default function SiteLayout({
       <Footer />
       <WhatsAppWidget />
       <ScrollToTop />
-      <CustomCursor />
     </div>
   );
 }
