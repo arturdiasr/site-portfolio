@@ -1,6 +1,10 @@
 import Link from 'next/link';
+import { client } from "@/sanity/lib/client";
 
-export default function Header() {
+export default async function Header() {
+  const query = `*[_type == "category"] | order(order asc, _createdAt asc) { _id, title }`;
+  const categories = await client.fetch(query);
+
   return (
     <header className="w-full flex flex-col items-center py-12 px-8">
       {/* Logo Centralizada */}
@@ -10,7 +14,27 @@ export default function Header() {
       
       {/* Menu Centralizado */}
       <nav className="flex items-center space-x-8 text-sm uppercase tracking-widest font-semibold">
-        <Link href="/" className="hover:text-gray-400 transition-colors">Portfólio</Link>
+        
+        {/* Dropdown de Portfólio */}
+        <div className="relative group py-4">
+          <Link href="/" className="hover:text-gray-400 transition-colors cursor-pointer">
+            Portfólio
+          </Link>
+          
+          {/* Submenu visível ao passar o mouse */}
+          <div className="absolute left-1/2 -translate-x-1/2 top-full w-56 bg-white border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.12)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 flex flex-col py-3">
+            {categories.map((cat: any) => (
+              <Link 
+                key={cat._id} 
+                href={`/categoria/${cat._id}`} 
+                className="px-6 py-3 hover:bg-gray-50 hover:text-black text-gray-500 text-xs transition-colors text-center"
+              >
+                {cat.title}
+              </Link>
+            ))}
+          </div>
+        </div>
+
         <Link href="/sobre" className="hover:text-gray-400 transition-colors">Sobre & Contato</Link>
         
         {/* Ícone Instagram */}
