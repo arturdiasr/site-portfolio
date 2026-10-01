@@ -14,7 +14,7 @@ export const clientAlbumType = defineType({
     defineField({
       name: 'slug',
       title: 'Link de Acesso (URL)',
-      description: 'Clique em "Generate" para criar o final do link.',
+      description: 'Clique em "Generate". O link que você vai mandar pro cliente será: www.arturdiasfotografia.com.br/cliente/o-nome-gerado',
       type: 'slug',
       options: { source: 'title' },
       validation: (rule) => rule.required(),
