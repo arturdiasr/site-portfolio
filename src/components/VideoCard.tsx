@@ -82,10 +82,9 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
         </div>
 
         {/* Ícone de Play e Título surgindo no centro */}
-        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center z-20 pointer-events-none">
+        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center z-20 pointer-events-none">
           <div className="text-center w-full px-4 flex flex-col items-center">
-            <svg className="w-12 h-12 text-white mb-2 shadow-sm drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            <h2 className="text-black bg-white/95 px-6 py-3 text-xl font-bold tracking-widest uppercase shadow-xl inline-block">{video.title}</h2>
+            <svg className="w-16 h-16 text-white drop-shadow-2xl opacity-90 transition-transform duration-300 group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
           </div>
         </div>
       </div>
@@ -104,27 +103,34 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
           </button>
           
           <div 
-            className="w-full h-full max-w-6xl max-h-[80vh] flex items-center justify-center relative bg-black shadow-2xl"
+            className="w-full h-full max-w-6xl max-h-[85vh] flex flex-col relative bg-black shadow-2xl rounded-sm overflow-hidden"
             onClick={(e) => e.stopPropagation()} // Impede que o clique no vídeo feche o modal
           >
-            {isNative && video.videoFileUrl && (
-              <video 
-                src={video.videoFileUrl}
-                className="w-full h-full object-contain"
-                controls
-                autoPlay
-              />
-            )}
-            {isYouTube && video.youtubeUrl && (
-              // @ts-ignore
-              <ReactPlayer 
-                url={video.youtubeUrl} 
-                playing 
-                controls 
-                width="100%" 
-                height="100%" 
-              />
-            )}
+            <div className="flex-1 w-full bg-black relative">
+              {isNative && video.videoFileUrl && (
+                <video 
+                  src={video.videoFileUrl}
+                  className="absolute inset-0 w-full h-full object-contain"
+                  controls
+                  autoPlay
+                />
+              )}
+              {isYouTube && video.youtubeUrl && (
+                // @ts-ignore
+                <ReactPlayer 
+                  url={video.youtubeUrl} 
+                  playing 
+                  controls 
+                  width="100%" 
+                  height="100%" 
+                  style={{ position: 'absolute', top: 0, left: 0 }}
+                />
+              )}
+            </div>
+            
+            <div className="w-full bg-black text-white p-4 md:p-6 text-center border-t border-white/10 shrink-0">
+              <h2 className="text-lg md:text-2xl font-bold tracking-widest uppercase">{video.title}</h2>
+            </div>
           </div>
         </div>
       )}
