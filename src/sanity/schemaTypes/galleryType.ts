@@ -20,9 +20,12 @@ export const galleryType = defineType({
     }),
     defineField({
       name: 'workDate',
-      title: 'Mês e Ano do Trabalho (Ex: Agosto 2026)',
-      description: 'Aparecerá discretamente na sessão de Últimos Trabalhos.',
-      type: 'string',
+      title: 'Data do Trabalho',
+      description: 'Escolha a data exata para ordenar corretamente. No site aparecerá apenas Mês e Ano.',
+      type: 'date',
+      options: {
+        dateFormat: 'DD/MM/YYYY',
+      }
     }),
     defineField({
       name: 'coverImage',

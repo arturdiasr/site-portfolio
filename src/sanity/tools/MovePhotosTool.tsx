@@ -189,8 +189,7 @@ export function MovePhotosTool() {
                 />
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input 
-                    type="text" 
-                    placeholder="Data (ex: Agosto 2026)" 
+                    type="date" 
                     value={newGalleryDate} 
                     onChange={e => setNewGalleryDate(e.target.value)} 
                     style={{ flex: 1, padding: '8px' }}

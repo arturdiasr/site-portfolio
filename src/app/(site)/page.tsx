@@ -28,7 +28,7 @@ export default async function Portfolio() {
   const items = await client.fetch(query);
 
   // Busca os 10 trabalhos mais recentes (sub-galerias)
-  const latestQuery = `*[_type == "gallery"] | order(_createdAt desc)[0...10] {
+  const latestQuery = `*[_type == "gallery"] | order(workDate desc, _createdAt desc)[0...10] {
     _id,
     title,
     workDate,
@@ -36,12 +36,24 @@ export default async function Portfolio() {
   }`;
   
   const latestGalleries = await client.fetch(latestQuery);
-  const formattedLatestGalleries = latestGalleries.map((gal: any) => ({
-    _id: gal._id,
-    title: gal.title,
-    workDate: gal.workDate || null,
-    coverImageUrl: gal.coverImage ? urlForImage(gal.coverImage).url() : ''
-  }));
+  const formattedLatestGalleries = latestGalleries.map((gal: any) => {
+    let formattedDate = gal.workDate || null;
+    if (formattedDate && formattedDate.includes('-')) {
+      const parts = formattedDate.split('-');
+      if (parts.length === 3) {
+        const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const month = date.toLocaleString('pt-BR', { month: 'long' });
+        formattedDate = month.charAt(0).toUpperCase() + month.slice(1) + " " + date.getFullYear();
+      }
+    }
+    
+    return {
+      _id: gal._id,
+      title: gal.title,
+      workDate: formattedDate,
+      coverImageUrl: gal.coverImage ? urlForImage(gal.coverImage).url() : ''
+    };
+  });
 
   return (
     <div className="w-full">
