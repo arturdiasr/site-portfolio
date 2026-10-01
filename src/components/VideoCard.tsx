@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import ReactPlayer from 'react-player/youtube';
+import ReactPlayer from 'react-player';
 
 type VideoItem = {
   _id: string;
