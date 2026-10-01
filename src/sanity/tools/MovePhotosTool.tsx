@@ -41,7 +41,8 @@ export function MovePhotosTool() {
     client.fetch(`*[_type == "category" && _id == $id][0] {
       images[] {
         _key,
-        "url": asset->url + "?w=200&h=200&fit=crop&auto=format&q=60"
+        "url": asset->url + "?w=200&h=200&fit=crop&auto=format&q=60",
+        "originalFilename": asset->originalFilename
       }
     }`, { id: selectedCategory }).then(res => {
       setImages(res?.images || [])
@@ -112,6 +113,43 @@ export function MovePhotosTool() {
       setSelectedCoverKey(null)
     } else {
       setSelectedImages(new Set(images.map(img => img._key)))
+    }
+  }
+
+  const handleSortImages = async () => {
+    if (!selectedCategory || images.length === 0) return;
+    setLoading(true);
+    setSuccess('');
+    
+    try {
+      const fullCategory = await client.getDocument(selectedCategory);
+      if (!fullCategory || !fullCategory.images) return;
+      
+      const filenameMap = new Map();
+      images.forEach(img => filenameMap.set(img._key, img.originalFilename || ''));
+      
+      const sortedFullImages = [...(fullCategory.images as any[])].sort((a, b) => {
+        const nameA = filenameMap.get(a._key) || '';
+        const nameB = filenameMap.get(b._key) || '';
+        return nameA.localeCompare(nameB);
+      });
+      
+      await client.patch(selectedCategory)
+        .set({ images: sortedFullImages })
+        .commit();
+        
+      const sortedLocalImages = [...images].sort((a, b) => {
+        const nameA = a.originalFilename || '';
+        const nameB = b.originalFilename || '';
+        return nameA.localeCompare(nameB);
+      });
+      
+      setImages(sortedLocalImages);
+      setSuccess("Fotos ordenadas de A-Z com sucesso!");
+    } catch (e) {
+      alert("Erro ao ordenar fotos");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -212,15 +250,26 @@ export function MovePhotosTool() {
 
         {images.length > 0 && (
           <div style={{ borderTop: '1px solid #eee', paddingTop: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <p style={{ fontWeight: '600', margin: 0 }}>3. Selecione as fotos ({selectedImages.size} de {images.length} selecionadas)</p>
-              <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>Dica: Segure SHIFT para selecionar várias de uma vez.</p>
-              <button 
-                style={{ padding: '6px 12px', background: 'transparent', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer' }}
-                onClick={toggleAll}
-              >
-                {selectedImages.size === images.length ? "Desmarcar Todas" : "Selecionar Todas"}
-              </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <p style={{ fontWeight: '600', margin: 0 }}>3. Selecione as fotos ({selectedImages.size} de {images.length} selecionadas)</p>
+                <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>Dica: Segure SHIFT para selecionar várias de uma vez.</p>
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button 
+                  style={{ padding: '6px 12px', background: '#f8f9fa', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                  onClick={handleSortImages}
+                  disabled={loading}
+                >
+                  Ordenar A-Z (Por Nome Original)
+                </button>
+                <button 
+                  style={{ padding: '6px 12px', background: 'transparent', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer' }}
+                  onClick={toggleAll}
+                >
+                  {selectedImages.size === images.length ? "Desmarcar Todas" : "Selecionar Todas"}
+                </button>
+              </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '15px', maxHeight: '500px', overflowY: 'auto', padding: '5px', userSelect: 'none' }}>
@@ -249,6 +298,9 @@ export function MovePhotosTool() {
                           FOTO DE CAPA
                         </div>
                       )}
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#666', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>
+                      {img.originalFilename || 'Sem nome'}
                     </div>
                     {isSelected && (
                       <button 
