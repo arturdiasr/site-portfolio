@@ -65,6 +65,7 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
             )}
             {isYouTube && video.youtubeUrl && (
               <div className="w-[150%] h-[150%] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                {/* @ts-ignore */}
                 <ReactPlayer 
                   url={video.youtubeUrl} 
                   playing={isHovered} 
@@ -115,6 +116,7 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
               />
             )}
             {isYouTube && video.youtubeUrl && (
+              // @ts-ignore
               <ReactPlayer 
                 url={video.youtubeUrl} 
                 playing 
