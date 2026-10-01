@@ -36,6 +36,7 @@ export default async function Header() {
         </div>
 
         <Link href="/sobre" className="hover:text-gray-400 transition-colors">Sobre & Contato</Link>
+        <Link href="/cliente" className="hover:text-gray-400 transition-colors">Área do Cliente</Link>
         
         {/* Ícone Instagram */}
         <Link href="https://www.instagram.com/arturdias/" target="_blank" className="hover:text-gray-400 transition-colors" aria-label="Instagram">

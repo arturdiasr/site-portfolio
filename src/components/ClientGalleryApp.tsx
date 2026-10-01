@@ -28,9 +28,25 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
   // Usamos localStorage para manter o estado caso o cliente atualize a página acidentalmente
   useEffect(() => {
     setIsClient(true);
+    
+    // Verifica se já estava logado antes
     const authStatus = localStorage.getItem(`auth_${album.slug}`);
     if (authStatus === 'true') {
       setIsAuthenticated(true);
+    } else {
+      // Verifica se veio do Hub Page (que salva a senha tentada no temp_pwd)
+      const tempPwd = localStorage.getItem(`temp_pwd_${album.slug}`);
+      if (tempPwd) {
+        if (tempPwd === album.password) {
+          setIsAuthenticated(true);
+          localStorage.setItem(`auth_${album.slug}`, 'true');
+        } else {
+          // Senha incorreta vinda do Hub Page, então mostramos a tela de login com erro
+          setPasswordInput(tempPwd);
+          setError(true);
+        }
+        localStorage.removeItem(`temp_pwd_${album.slug}`); // Limpa para não rodar de novo
+      }
     }
 
     const savedSelections = localStorage.getItem(`selections_${album.slug}`);
@@ -39,7 +55,7 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
         setSelectedFiles(JSON.parse(savedSelections));
       } catch (e) {}
     }
-  }, [album.slug]);
+  }, [album.slug, album.password]);
 
   // Salva seleções ao alterar
   useEffect(() => {
@@ -177,16 +193,16 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
       </div>
 
       {/* Barra Inferior Fixa */}
-      <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-10px_30px_rgb(0,0,0,0.05)] z-40 p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="text-center md:text-left">
+      <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-10px_30px_rgb(0,0,0,0.05)] z-40 p-4 md:p-6 flex flex-col md:flex-row items-center justify-center gap-6 md:gap-16">
+        <div className="text-center">
           <p className="text-xl font-bold uppercase tracking-widest">{selectedFiles.length} Favoritas</p>
-          <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">de {album.images?.length || 0} fotos totae</p>
+          <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">de {album.images?.length || 0} fotos totais</p>
         </div>
         
         <button 
           onClick={copyToLightroom}
           disabled={selectedFiles.length === 0}
-          className={`px-8 py-4 font-bold uppercase tracking-widest text-sm transition-all flex items-center gap-2 ${
+          className={`px-8 py-4 font-bold uppercase tracking-widest text-sm transition-all flex items-center justify-center gap-2 ${
             selectedFiles.length === 0 
               ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
               : copied 
