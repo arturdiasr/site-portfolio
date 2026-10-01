@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { client } from "@/sanity/lib/client";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.arturdiasfotografia.com';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.arturdiasfotografia.com.br';
 
   // Páginas estáticas do site
   const staticPages: MetadataRoute.Sitemap = [
