@@ -11,7 +11,10 @@ export default async function CategoriaPage({ params }: { params: Promise<{ id: 
   
   const catQuery = `*[_type == "category" && _id == $id][0] { 
     title,
-    images
+    images[] {
+      ...,
+      "aspectRatio": asset->metadata.dimensions.aspectRatio
+    }
   }`;
   const category = await client.fetch(catQuery, { id });
 
@@ -20,13 +23,15 @@ export default async function CategoriaPage({ params }: { params: Promise<{ id: 
   const subQuery = `*[_type == "gallery" && category._ref == $id] | order(_createdAt desc) {
     _id,
     title,
-    "coverImage": coalesce(images[isCover == true][0], coverImage)
+    "coverImage": coalesce(images[isCover == true][0], coverImage),
+    "aspectRatio": coalesce(images[isCover == true][0].asset->metadata.dimensions.aspectRatio, coverImage.asset->metadata.dimensions.aspectRatio)
   }`;
   const subGalleries = await client.fetch(subQuery, { id });
 
   const looseImages = category.images?.map((img: any, index: number) => ({
     url: urlForImage(img).width(1600).url(),
-    alt: img.caption || `${category.title} - Foto solta ${index + 1}`
+    alt: img.caption || `${category.title} - Foto solta ${index + 1}`,
+    aspectRatio: img.aspectRatio
   })) || [];
 
   return (
@@ -47,28 +52,35 @@ export default async function CategoriaPage({ params }: { params: Promise<{ id: 
           
           {subGalleries.length > 0 && (
             <section className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 2xl:columns-5 gap-6">
-              {subGalleries.map((gallery: any) => (
-                <Link href={`/galeria/${gallery._id}`} key={gallery._id} className="group relative break-inside-avoid mb-6 w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all">
-                  
-                  {gallery.coverImage ? (
-                    <img 
-                      src={urlForImage(gallery.coverImage).url()} 
-                      alt={gallery.title}
-                      className="w-full h-auto object-cover transition-transform duration-1000 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="w-full aspect-[4/5] bg-gray-200 flex items-center justify-center text-xs text-gray-400">Sem foto de capa</div>
-                  )}
-                  
-                  {/* Texto surgindo no centro ao passar o mouse */}
-                  <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center pointer-events-none">
-                    <div className="text-center w-full px-4">
-                      <h2 className="text-black bg-white/95 px-6 py-3 text-xl font-bold tracking-widest uppercase shadow-xl inline-block">{gallery.title}</h2>
+              {subGalleries.map((gallery: any) => {
+                const isLandscape = gallery.aspectRatio && gallery.aspectRatio > 1;
+                const aspectClass = isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
+
+                return (
+                  <Link href={`/galeria/${gallery._id}`} key={gallery._id} className="group relative break-inside-avoid mb-6 w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all">
+                    
+                    <div className={`w-full ${aspectClass}`}>
+                      {gallery.coverImage ? (
+                        <img 
+                          src={urlForImage(gallery.coverImage).url()} 
+                          alt={gallery.title}
+                          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center text-xs text-gray-400">Sem foto de capa</div>
+                      )}
                     </div>
-                  </div>
-                  
-                </Link>
-              ))}
+                    
+                    {/* Texto surgindo no centro ao passar o mouse */}
+                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center pointer-events-none">
+                      <div className="text-center w-full px-4">
+                        <h2 className="text-black bg-white/95 px-6 py-3 text-xl font-bold tracking-widest uppercase shadow-xl inline-block">{gallery.title}</h2>
+                      </div>
+                    </div>
+                    
+                  </Link>
+                );
+              })}
             </section>
           )}
 
