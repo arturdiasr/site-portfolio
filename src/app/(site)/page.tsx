@@ -56,7 +56,7 @@ export default async function Portfolio() {
             const aspectClass = isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
 
             return (
-              <Link href={`/categoria/${item._id}`} key={item._id} className="group relative break-inside-avoid w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all">
+              <Link href={`/categoria/${item._id}`} key={item._id} className="group relative break-inside-avoid mb-6 w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all">
                 
                 <div className={`w-full ${aspectClass}`}>
                   {item.categoryCover ? (

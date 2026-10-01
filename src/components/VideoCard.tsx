@@ -38,7 +38,7 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
   return (
     <>
       <div 
-        className="group relative break-inside-avoid w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all"
+        className="group relative break-inside-avoid mb-6 w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={() => setIsOpen(true)}
