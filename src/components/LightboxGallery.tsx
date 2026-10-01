@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import MasonryGrid from '@/components/MasonryGrid';
 
 export default function LightboxGallery({ images }: { images: { url: string; alt: string; aspectRatio?: number }[] }) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -21,7 +22,7 @@ export default function LightboxGallery({ images }: { images: { url: string; alt
 
   return (
     <>
-      <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 2xl:columns-5 gap-6">
+      <MasonryGrid>
         {images.map((img, index) => {
           const isLandscape = img.aspectRatio && img.aspectRatio > 1;
           const aspectClass = isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
@@ -42,7 +43,7 @@ export default function LightboxGallery({ images }: { images: { url: string; alt
             </div>
           );
         })}
-      </div>
+      </MasonryGrid>
 
       {/* Lightbox Overlay */}
       {selectedIndex !== null && (

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { urlForImage } from "@/sanity/lib/image";
 
+import MasonryGrid from '@/components/MasonryGrid';
+
 type ClientAlbumData = {
   title: string;
   slug: string;
@@ -139,7 +141,7 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
   return (
     <div className="w-full pb-32">
       {/* Grade de Fotos */}
-      <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 2xl:columns-5 gap-6">
+      <MasonryGrid>
         {album.images?.map((img, index) => {
           const isSelected = selectedFiles.includes(img.originalFilename);
           const isLandscape = img.aspectRatio && img.aspectRatio > 1;
@@ -190,7 +192,7 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
             </div>
           );
         })}
-      </div>
+      </MasonryGrid>
 
       {/* Barra Inferior Fixa */}
       <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-10px_30px_rgb(0,0,0,0.05)] z-40 p-4 md:p-6 flex flex-col md:flex-row items-center justify-center gap-6 md:gap-16">

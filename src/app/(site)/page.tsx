@@ -1,6 +1,7 @@
 import { client } from "@/sanity/lib/client";
 import { urlForImage } from "@/sanity/lib/image";
 import Link from "next/link";
+import MasonryGrid from "@/components/MasonryGrid";
 
 export const revalidate = 0;
 
@@ -19,10 +20,9 @@ export default async function Portfolio() {
       {categories.length === 0 ? (
         <p className="text-center text-gray-500 py-20">Nenhuma categoria encontrada. Crie categorias no Painel /studio e adicione uma foto de capa.</p>
       ) : (
-        <section className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 2xl:columns-5 gap-6">
+        <MasonryGrid>
           {categories.map((cat: any) => {
             // Padroniza as proporções: 3/2 para horizontais e 4/5 para verticais
-            // Isso evita a quebra de simetria do Masonry causada por formatos variados (16:9, 4:3, etc)
             const isLandscape = cat.aspectRatio && cat.aspectRatio > 1;
             const aspectClass = isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
 
@@ -51,7 +51,7 @@ export default async function Portfolio() {
               </Link>
             );
           })}
-        </section>
+        </MasonryGrid>
       )}
     </div>
   );

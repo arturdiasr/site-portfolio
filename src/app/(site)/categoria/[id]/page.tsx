@@ -3,6 +3,7 @@ import { urlForImage } from "@/sanity/lib/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import LightboxGallery from "@/components/LightboxGallery";
+import MasonryGrid from "@/components/MasonryGrid";
 
 export const revalidate = 0;
 
@@ -51,7 +52,7 @@ export default async function CategoriaPage({ params }: { params: Promise<{ id: 
         <div className="space-y-24">
           
           {subGalleries.length > 0 && (
-            <section className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 2xl:columns-5 gap-6">
+            <MasonryGrid>
               {subGalleries.map((gallery: any) => {
                 const isLandscape = gallery.aspectRatio && gallery.aspectRatio > 1;
                 const aspectClass = isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
@@ -81,7 +82,7 @@ export default async function CategoriaPage({ params }: { params: Promise<{ id: 
                   </Link>
                 );
               })}
-            </section>
+            </MasonryGrid>
           )}
 
           {looseImages.length > 0 && (
