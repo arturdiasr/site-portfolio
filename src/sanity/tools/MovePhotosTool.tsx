@@ -6,7 +6,8 @@ export function MovePhotosTool() {
   const [categories, setCategories] = useState<any[]>([])
   const [galleries, setGalleries] = useState<any[]>([])
   
-  const [selectedCategory, setSelectedCategory] = useState('')
+  const [selectedSource, setSelectedSource] = useState('')
+  const [selectedSourceType, setSelectedSourceType] = useState<'category' | 'gallery' | null>(null)
   const [selectedGallery, setSelectedGallery] = useState('')
   
   const [images, setImages] = useState<any[]>([])
@@ -31,39 +32,52 @@ export function MovePhotosTool() {
   }, [])
 
   useEffect(() => {
-    if (!selectedCategory) {
+    if (!selectedSource) {
       setImages([])
       setSelectedImages(new Set())
       setSelectedCoverKey(null)
+      setSelectedSourceType(null)
       return
     }
+    
+    const isCat = categories.some(c => c._id === selectedSource)
+    setSelectedSourceType(isCat ? 'category' : 'gallery')
+    
     setLoading(true)
-    client.fetch(`*[_type == "category" && _id == $id][0] {
+    client.fetch(`*[_id == $id][0] {
       images[] {
         _key,
         "url": asset->url + "?w=200&h=200&fit=crop&auto=format&q=60",
         "originalFilename": asset->originalFilename
       }
-    }`, { id: selectedCategory }).then(res => {
+    }`, { id: selectedSource }).then(res => {
       setImages(res?.images || [])
       setSelectedImages(new Set())
       setLastSelectedIdx(null)
       setSelectedCoverKey(null)
       setLoading(false)
     })
-  }, [selectedCategory])
+  }, [selectedSource, categories])
 
   const handleCreateGallery = async () => {
-    if (!newGalleryTitle || !selectedCategory) return
+    if (!newGalleryTitle || !selectedSource) return
     setLoading(true)
     try {
+      let targetCatRef = selectedSource;
+      if (selectedSourceType === 'gallery') {
+        const sourceGal = galleries.find(g => g._id === selectedSource);
+        if (sourceGal?.category?._ref) {
+          targetCatRef = sourceGal.category._ref;
+        }
+      }
+
       const doc = await client.create({
         _type: 'gallery',
         title: newGalleryTitle,
         workDate: newGalleryDate || undefined,
-        category: { _type: 'reference', _ref: selectedCategory }
+        category: { _type: 'reference', _ref: targetCatRef }
       })
-      setGalleries([...galleries, { _id: doc._id, title: doc.title, category: { _ref: selectedCategory } }])
+      setGalleries([...galleries, { _id: doc._id, title: doc.title, category: { _ref: targetCatRef } }])
       setSelectedGallery(doc._id)
       setIsCreatingGallery(false)
       setNewGalleryTitle('')
@@ -117,24 +131,24 @@ export function MovePhotosTool() {
   }
 
   const handleSortImages = async () => {
-    if (!selectedCategory || images.length === 0) return;
+    if (!selectedSource || images.length === 0) return;
     setLoading(true);
     setSuccess('');
     
     try {
-      const fullCategory = await client.getDocument(selectedCategory);
-      if (!fullCategory || !fullCategory.images) return;
+      const fullDoc = await client.getDocument(selectedSource);
+      if (!fullDoc || !fullDoc.images) return;
       
       const filenameMap = new Map();
       images.forEach(img => filenameMap.set(img._key, img.originalFilename || ''));
       
-      const sortedFullImages = [...(fullCategory.images as any[])].sort((a, b) => {
+      const sortedFullImages = [...(fullDoc.images as any[])].sort((a, b) => {
         const nameA = filenameMap.get(a._key) || '';
         const nameB = filenameMap.get(b._key) || '';
         return nameA.localeCompare(nameB);
       });
       
-      await client.patch(selectedCategory)
+      await client.patch(selectedSource)
         .set({ images: sortedFullImages })
         .commit();
         
@@ -154,27 +168,27 @@ export function MovePhotosTool() {
   }
 
   const handleMove = async () => {
-    if (!selectedCategory || !selectedGallery || selectedImages.size === 0) return
+    if (!selectedSource || !selectedGallery || selectedImages.size === 0) return
     setLoading(true)
     setSuccess('')
     try {
-      const fullCategory = await client.getDocument(selectedCategory)
-      if (!fullCategory || !fullCategory.images) return
+      const fullDoc = await client.getDocument(selectedSource)
+      if (!fullDoc || !fullDoc.images) return
       
-      const imagesToMove = (fullCategory.images as any[]).filter(img => selectedImages.has(img._key)).map(img => {
+      const imagesToMove = (fullDoc.images as any[]).filter(img => selectedImages.has(img._key)).map(img => {
         if (img._key === selectedCoverKey) {
           return { ...img, isCover: true }
         }
         return { ...img, isCover: false } // ensure others are false just in case
       })
-      const imagesToKeep = (fullCategory.images as any[]).filter(img => !selectedImages.has(img._key))
+      const imagesToKeep = (fullDoc.images as any[]).filter(img => !selectedImages.has(img._key))
       
       await client.patch(selectedGallery)
         .setIfMissing({ images: [] })
         .append('images', imagesToMove)
         .commit()
         
-      await client.patch(selectedCategory)
+      await client.patch(selectedSource)
         .set({ images: imagesToKeep })
         .commit()
         
@@ -189,14 +203,19 @@ export function MovePhotosTool() {
     }
   }
 
-  const filteredGalleries = galleries.filter(g => g.category?._ref === selectedCategory)
+  const filteredGalleries = selectedSourceType === 'category' 
+    ? galleries.filter(g => g.category?._ref === selectedSource)
+    : galleries.filter(g => {
+        const sourceGal = galleries.find(sg => sg._id === selectedSource);
+        return g.category?._ref === sourceGal?.category?._ref && g._id !== selectedSource;
+      });
 
   return (
     <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto', fontFamily: 'system-ui' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>Organizador de Fotos (Mover em Lote)</h2>
-          <p style={{ color: '#666', marginTop: '8px' }}>Mova várias fotos de uma Categoria diretamente para uma Sub-galeria.</p>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>Organizador de Fotos Avançado</h2>
+          <p style={{ color: '#666', marginTop: '8px' }}>Ordene as fotos da sua Categoria ou Sub-galeria, e mova-as para onde precisar.</p>
         </div>
 
         {success && (
@@ -207,15 +226,20 @@ export function MovePhotosTool() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div>
-            <p style={{ fontWeight: '600', marginBottom: '8px' }}>1. De qual Categoria?</p>
-            <select style={{ width: '100%', padding: '8px' }} onChange={e => setSelectedCategory(e.target.value)} value={selectedCategory}>
-              <option value="">Selecione uma categoria...</option>
-              {categories.map(c => <option key={c._id} value={c._id}>{c.title}</option>)}
+            <p style={{ fontWeight: '600', marginBottom: '8px' }}>1. Selecione a Origem das Fotos</p>
+            <select style={{ width: '100%', padding: '8px' }} onChange={e => setSelectedSource(e.target.value)} value={selectedSource}>
+              <option value="">Selecione uma categoria ou galeria...</option>
+              <optgroup label="Categorias">
+                {categories.map(c => <option key={c._id} value={c._id}>📁 {c.title}</option>)}
+              </optgroup>
+              <optgroup label="Sub-galerias">
+                {galleries.map(g => <option key={g._id} value={g._id}>🖼️ {g.title}</option>)}
+              </optgroup>
             </select>
           </div>
           
           <div>
-            <p style={{ fontWeight: '600', marginBottom: '8px' }}>2. Para qual Sub-galeria?</p>
+            <p style={{ fontWeight: '600', marginBottom: '8px' }}>2. Para qual Sub-galeria mover?</p>
             {isCreatingGallery ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <input 
@@ -238,11 +262,11 @@ export function MovePhotosTool() {
               </div>
             ) : (
               <div style={{ display: 'flex', gap: '8px' }}>
-                <select style={{ flex: 1, padding: '8px' }} onChange={e => setSelectedGallery(e.target.value)} value={selectedGallery} disabled={!selectedCategory}>
-                  <option value="">Selecione uma galeria...</option>
+                <select style={{ flex: 1, padding: '8px' }} onChange={e => setSelectedGallery(e.target.value)} value={selectedGallery} disabled={!selectedSource}>
+                  <option value="">Selecione uma galeria destino...</option>
                   {filteredGalleries.map(g => <option key={g._id} value={g._id}>{g.title}</option>)}
                 </select>
-                <button onClick={() => setIsCreatingGallery(true)} disabled={!selectedCategory} style={{ padding: '8px', cursor: 'pointer' }}>+ Nova</button>
+                <button onClick={() => setIsCreatingGallery(true)} disabled={!selectedSource} style={{ padding: '8px', cursor: 'pointer' }}>+ Nova</button>
               </div>
             )}
           </div>
@@ -345,8 +369,8 @@ export function MovePhotosTool() {
           </div>
         )}
         
-        {selectedCategory && images.length === 0 && !loading && (
-          <p style={{ color: '#666' }}>Nenhuma foto solta encontrada nesta categoria.</p>
+        {selectedSource && images.length === 0 && !loading && (
+          <p style={{ color: '#666' }}>Nenhuma foto encontrada nesta origem.</p>
         )}
         {loading && !images.length && <p style={{ color: '#666' }}>Carregando...</p>}
 
