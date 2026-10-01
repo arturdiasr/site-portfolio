@@ -3,6 +3,7 @@ import { urlForImage } from "@/sanity/lib/image";
 import Link from "next/link";
 import MasonryGrid from "@/components/MasonryGrid";
 import VideoCard from "@/components/VideoCard";
+import LatestWorksCarousel from "@/components/LatestWorksCarousel";
 
 export const revalidate = 0;
 
@@ -27,6 +28,20 @@ export default async function Portfolio() {
   }`;
   
   const items = await client.fetch(query);
+
+  // Busca os 10 trabalhos mais recentes (sub-galerias)
+  const latestQuery = `*[_type == "gallery"] | order(_createdAt desc)[0...10] {
+    _id,
+    title,
+    "coverImage": coalesce(images[isCover == true][0], coverImage)
+  }`;
+  
+  const latestGalleries = await client.fetch(latestQuery);
+  const formattedLatestGalleries = latestGalleries.map((gal: any) => ({
+    _id: gal._id,
+    title: gal.title,
+    coverImageUrl: gal.coverImage ? urlForImage(gal.coverImage).url() : ''
+  }));
 
   return (
     <div className="w-full">
@@ -82,6 +97,10 @@ export default async function Portfolio() {
           })}
         </MasonryGrid>
       )}
+
+      {/* Sessão de Últimos Trabalhos (Carrossel) */}
+      <LatestWorksCarousel galleries={formattedLatestGalleries} />
+      
     </div>
   );
 }
