@@ -17,6 +17,8 @@ export function MovePhotosTool() {
   const [success, setSuccess] = useState('')
   const [isCreatingGallery, setIsCreatingGallery] = useState(false)
   const [newGalleryTitle, setNewGalleryTitle] = useState('')
+  const [newGalleryDate, setNewGalleryDate] = useState('')
+  const [selectedCoverKey, setSelectedCoverKey] = useState<string | null>(null)
 
   useEffect(() => {
     client.fetch(`{
@@ -32,6 +34,7 @@ export function MovePhotosTool() {
     if (!selectedCategory) {
       setImages([])
       setSelectedImages(new Set())
+      setSelectedCoverKey(null)
       return
     }
     setLoading(true)
@@ -44,6 +47,7 @@ export function MovePhotosTool() {
       setImages(res?.images || [])
       setSelectedImages(new Set())
       setLastSelectedIdx(null)
+      setSelectedCoverKey(null)
       setLoading(false)
     })
   }, [selectedCategory])
@@ -55,12 +59,14 @@ export function MovePhotosTool() {
       const doc = await client.create({
         _type: 'gallery',
         title: newGalleryTitle,
+        workDate: newGalleryDate || undefined,
         category: { _type: 'reference', _ref: selectedCategory }
       })
       setGalleries([...galleries, { _id: doc._id, title: doc.title, category: { _ref: selectedCategory } }])
       setSelectedGallery(doc._id)
       setIsCreatingGallery(false)
       setNewGalleryTitle('')
+      setNewGalleryDate('')
       setSuccess(`Sub-galeria "${doc.title}" criada com sucesso!`)
     } catch (e) {
       alert("Erro ao criar sub-galeria")
@@ -79,12 +85,21 @@ export function MovePhotosTool() {
       const isSelecting = !next.has(key)
       
       for (let i = start; i <= end; i++) {
-        if (isSelecting) next.add(images[i]._key)
-        else next.delete(images[i]._key)
+        const k = images[i]._key;
+        if (isSelecting) {
+          next.add(k)
+        } else {
+          next.delete(k)
+          if (selectedCoverKey === k) setSelectedCoverKey(null)
+        }
       }
     } else {
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
+      if (next.has(key)) {
+        next.delete(key)
+        if (selectedCoverKey === key) setSelectedCoverKey(null)
+      } else {
+        next.add(key)
+      }
     }
     
     setSelectedImages(next)
@@ -94,6 +109,7 @@ export function MovePhotosTool() {
   const toggleAll = () => {
     if (selectedImages.size === images.length) {
       setSelectedImages(new Set())
+      setSelectedCoverKey(null)
     } else {
       setSelectedImages(new Set(images.map(img => img._key)))
     }
@@ -107,7 +123,12 @@ export function MovePhotosTool() {
       const fullCategory = await client.getDocument(selectedCategory)
       if (!fullCategory || !fullCategory.images) return
       
-      const imagesToMove = (fullCategory.images as any[]).filter(img => selectedImages.has(img._key))
+      const imagesToMove = (fullCategory.images as any[]).filter(img => selectedImages.has(img._key)).map(img => {
+        if (img._key === selectedCoverKey) {
+          return { ...img, isCover: true }
+        }
+        return { ...img, isCover: false } // ensure others are false just in case
+      })
       const imagesToKeep = (fullCategory.images as any[]).filter(img => !selectedImages.has(img._key))
       
       await client.patch(selectedGallery)
@@ -122,6 +143,7 @@ export function MovePhotosTool() {
       setSuccess(`${selectedImages.size} fotos movidas com sucesso!`)
       setImages(imagesToKeep)
       setSelectedImages(new Set())
+      setSelectedCoverKey(null)
     } catch (err) {
       alert("Ocorreu um erro ao mover as fotos.")
     } finally {
@@ -157,16 +179,25 @@ export function MovePhotosTool() {
           <div>
             <p style={{ fontWeight: '600', marginBottom: '8px' }}>2. Para qual Sub-galeria?</p>
             {isCreatingGallery ? (
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <input 
                   type="text" 
                   placeholder="Nome da nova galeria" 
                   value={newGalleryTitle} 
                   onChange={e => setNewGalleryTitle(e.target.value)} 
-                  style={{ flex: 1, padding: '8px' }}
+                  style={{ width: '100%', padding: '8px' }}
                 />
-                <button onClick={handleCreateGallery} disabled={!newGalleryTitle || loading} style={{ padding: '8px', background: '#2276fc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Criar</button>
-                <button onClick={() => setIsCreatingGallery(false)} style={{ padding: '8px', cursor: 'pointer' }}>Cancelar</button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Data (ex: Agosto 2026)" 
+                    value={newGalleryDate} 
+                    onChange={e => setNewGalleryDate(e.target.value)} 
+                    style={{ flex: 1, padding: '8px' }}
+                  />
+                  <button onClick={handleCreateGallery} disabled={!newGalleryTitle || loading} style={{ padding: '8px', background: '#2276fc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Criar</button>
+                  <button onClick={() => setIsCreatingGallery(false)} style={{ padding: '8px', cursor: 'pointer' }}>Cancelar</button>
+                </div>
               </div>
             ) : (
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -193,26 +224,53 @@ export function MovePhotosTool() {
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px', maxHeight: '500px', overflowY: 'auto', padding: '5px', userSelect: 'none' }}>
-              {images.map((img, idx) => (
-                <div 
-                  key={img._key} 
-                  onClick={(e) => toggleImage(idx, e)}
-                  style={{ 
-                    position: 'relative', 
-                    cursor: 'pointer',
-                    border: selectedImages.has(img._key) ? '3px solid #2276fc' : '1px solid #ddd',
-                    borderRadius: '4px',
-                    overflow: 'hidden',
-                    aspectRatio: '1/1'
-                  }}
-                >
-                  <img src={img.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <div style={{ position: 'absolute', top: '5px', left: '5px', backgroundColor: 'white', padding: '2px', borderRadius: '3px' }}>
-                    <input type="checkbox" checked={selectedImages.has(img._key)} readOnly style={{ margin: 0, pointerEvents: 'none' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '15px', maxHeight: '500px', overflowY: 'auto', padding: '5px', userSelect: 'none' }}>
+              {images.map((img, idx) => {
+                const isSelected = selectedImages.has(img._key);
+                const isCover = selectedCoverKey === img._key;
+                return (
+                  <div key={img._key} style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    <div 
+                      onClick={(e) => toggleImage(idx, e)}
+                      style={{ 
+                        position: 'relative', 
+                        cursor: 'pointer',
+                        border: isSelected ? '3px solid #2276fc' : '1px solid #ddd',
+                        borderRadius: '4px',
+                        overflow: 'hidden',
+                        aspectRatio: '1/1'
+                      }}
+                    >
+                      <img src={img.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <div style={{ position: 'absolute', top: '5px', left: '5px', backgroundColor: 'white', padding: '2px', borderRadius: '3px' }}>
+                        <input type="checkbox" checked={isSelected} readOnly style={{ margin: 0, pointerEvents: 'none' }} />
+                      </div>
+                      {isCover && (
+                        <div style={{ position: 'absolute', bottom: '0', left: '0', width: '100%', background: 'rgba(34, 118, 252, 0.9)', color: 'white', fontSize: '10px', textAlign: 'center', padding: '4px 0', fontWeight: 'bold' }}>
+                          FOTO DE CAPA
+                        </div>
+                      )}
+                    </div>
+                    {isSelected && (
+                      <button 
+                        onClick={() => setSelectedCoverKey(isCover ? null : img._key)}
+                        style={{
+                          fontSize: '11px',
+                          padding: '4px',
+                          borderRadius: '4px',
+                          border: isCover ? '1px solid #2276fc' : '1px solid #ccc',
+                          background: isCover ? '#e8f0fe' : 'transparent',
+                          color: isCover ? '#2276fc' : '#666',
+                          cursor: 'pointer',
+                          fontWeight: isCover ? 'bold' : 'normal'
+                        }}
+                      >
+                        {isCover ? "★ Capa Definida" : "Definir Capa"}
+                      </button>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div style={{ marginTop: '20px' }}>
