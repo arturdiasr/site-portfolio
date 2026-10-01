@@ -14,31 +14,37 @@ export const galleryType = defineType({
     defineField({
       name: 'category',
       title: 'Categoria',
-      type: 'reference', // Agora é uma referência dinâmica à Categoria
+      type: 'reference',
       to: [{type: 'category'}],
       validation: (rule) => rule.required(),
     }),
     defineField({
       name: 'coverImage',
       title: 'Foto de Capa',
+      description: 'Você pode subir uma foto aqui OU marcar uma das fotos da galeria abaixo como "Usar como Capa" (o site dará preferência para a foto marcada abaixo).',
       type: 'image',
       options: {
         hotspot: true,
-      },
-      validation: (rule) => rule.required(),
+      }
     }),
     defineField({
       name: 'images',
-      title: 'Fotos da Galeria (Arraste várias de uma vez)',
+      title: 'Fotos da Galeria (Arraste várias de uma vez, mude a ordem arrastando)',
       type: 'array',
       options: {
-        layout: 'grid', // Mostra as fotos como um "grid" no painel, facilitando organizar
+        layout: 'grid',
       },
       of: [
         {
           type: 'image', 
           options: {hotspot: true},
           fields: [
+            {
+              name: 'isCover',
+              title: 'Tornar essa foto capa do álbum',
+              type: 'boolean',
+              initialValue: false,
+            },
             {
               name: 'caption',
               type: 'string',

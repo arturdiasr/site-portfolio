@@ -22,11 +22,11 @@ export default function LightboxGallery({ images }: { images: { url: string; alt
 
   return (
     <>
-      <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 2xl:columns-5 gap-6 space-y-6">
+      <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 2xl:columns-5 gap-6">
         {images.map((img, index) => (
           <div 
             key={index} 
-            className="break-inside-avoid shadow-sm hover:shadow-xl transition-shadow duration-500 cursor-zoom-in"
+            className="break-inside-avoid mb-6 w-full block shadow-sm hover:shadow-xl transition-shadow duration-500 cursor-zoom-in"
             onClick={() => setSelectedIndex(index)}
             onContextMenu={(e) => e.preventDefault()} // Protege contra clique direito
           >

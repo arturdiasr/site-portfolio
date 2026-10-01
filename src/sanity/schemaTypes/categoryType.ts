@@ -12,11 +12,53 @@ export const categoryType = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
+      name: 'order',
+      title: 'Ordem de Exibição (Ex: 1, 2, 3...)',
+      description: 'Use números para ordenar como as categorias aparecem na página inicial. Números menores aparecem primeiro.',
+      type: 'number',
+      initialValue: 99
+    }),
+    defineField({
       name: 'coverImage',
       title: 'Foto de Capa da Categoria',
       description: 'Esta é a foto que vai aparecer na página inicial principal.',
       type: 'image',
       options: { hotspot: true }
     }),
+    defineField({
+      name: 'images',
+      title: 'Fotos Soltas da Categoria',
+      description: 'Arraste fotos soltas que pertencem a esta categoria (sem precisar criar um álbum/evento específico para elas).',
+      type: 'array',
+      options: { layout: 'grid' },
+      of: [
+        {
+          type: 'image',
+          options: { hotspot: true },
+          fields: [
+            {
+              name: 'isCover',
+              title: 'Tornar essa foto a capa da categoria',
+              type: 'boolean',
+              initialValue: false,
+            },
+            {
+              name: 'caption',
+              title: 'Nome / Tag da Foto',
+              type: 'string',
+            }
+          ]
+        }
+      ]
+    }),
   ],
+  orderings: [
+    {
+      title: 'Ordem de Exibição',
+      name: 'orderAsc',
+      by: [
+        {field: 'order', direction: 'asc'}
+      ]
+    }
+  ]
 })
