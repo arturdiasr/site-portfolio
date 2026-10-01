@@ -68,10 +68,12 @@ export default function LatestWorksCarousel({ galleries }: { galleries: Gallery[
             data-cursor="VER"
             className="flex flex-col flex-none w-[75vw] sm:w-[45vw] md:w-[30vw] lg:w-[18vw] snap-start group cursor-pointer"
           >
-            {/* Título fixo acima da foto */}
-            <h3 className="text-xs md:text-sm font-bold uppercase tracking-widest text-center mb-3 line-clamp-1 group-hover:text-gray-500 transition-colors">
-              {gallery.title}
-            </h3>
+            {/* Título flexível acima da foto */}
+            <div className="flex-grow flex items-end justify-center mb-3">
+              <h3 className="text-xs md:text-sm font-bold uppercase tracking-widest text-center group-hover:text-gray-500 transition-colors">
+                {gallery.title}
+              </h3>
+            </div>
             
             {/* Foto de capa */}
             <div className="relative w-full aspect-[4/5] bg-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
