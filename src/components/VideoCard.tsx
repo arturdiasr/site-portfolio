@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import ReactPlayer from 'react-player';
 
 type VideoItem = {
   _id: string;
@@ -12,6 +11,13 @@ type VideoItem = {
   coverImage: string;
   format: string;
 };
+
+// Extrai o ID do YouTube de qualquer formato de link
+function getYouTubeId(url?: string) {
+  if (!url) return null;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+  return match ? match[1] : null;
+}
 
 export default function VideoCard({ video, aspectClass }: { video: VideoItem, aspectClass: string }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -34,6 +40,7 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
 
   const isNative = video.videoType === 'Arquivo Nativo (Upload)';
   const isYouTube = video.videoType === 'Link do YouTube';
+  const youtubeId = isYouTube ? getYouTubeId(video.youtubeUrl) : null;
 
   return (
     <>
@@ -63,25 +70,19 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
                 playsInline
               />
             )}
-            {isYouTube && video.youtubeUrl && (
+            {isYouTube && youtubeId && isHovered && (
               <div className="w-[150%] h-[150%] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                {/* @ts-ignore */}
-                <ReactPlayer 
-                  url={video.youtubeUrl} 
-                  playing={isHovered} 
-                  muted 
-                  loop 
-                  width="100%" 
-                  height="100%" 
-                  style={{ pointerEvents: 'none' }}
-                  config={{ youtube: { playerVars: { disablekb: 1, modestbranding: 1 } } }}
+                <iframe 
+                  src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${youtubeId}`}
+                  allow="autoplay"
+                  className="w-full h-full border-0 pointer-events-none"
                 />
               </div>
             )}
           </div>
         </div>
 
-        {/* Ícone de Play e Título surgindo no centro */}
+        {/* Ícone de Play surgindo no centro */}
         <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center z-20 pointer-events-none">
           <div className="text-center w-full px-4 flex flex-col items-center">
             <svg className="w-16 h-16 text-white drop-shadow-2xl opacity-90 transition-transform duration-300 group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -106,7 +107,7 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
             className="w-full h-full max-w-6xl max-h-[85vh] flex flex-col relative bg-black shadow-2xl rounded-sm overflow-hidden"
             onClick={(e) => e.stopPropagation()} // Impede que o clique no vídeo feche o modal
           >
-            <div className="flex-1 w-full bg-black relative">
+            <div className="flex-1 w-full bg-black relative flex items-center justify-center">
               {isNative && video.videoFileUrl && (
                 <video 
                   src={video.videoFileUrl}
@@ -115,15 +116,11 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
                   autoPlay
                 />
               )}
-              {isYouTube && video.youtubeUrl && (
-                // @ts-ignore
-                <ReactPlayer 
-                  url={video.youtubeUrl} 
-                  playing 
-                  controls 
-                  width="100%" 
-                  height="100%" 
-                  style={{ position: 'absolute', top: 0, left: 0 }}
+              {isYouTube && youtubeId && (
+                <iframe 
+                  src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0`}
+                  allow="autoplay; fullscreen"
+                  className="absolute inset-0 w-full h-full border-0"
                 />
               )}
             </div>
