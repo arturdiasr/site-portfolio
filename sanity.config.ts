@@ -8,7 +8,20 @@ export default defineConfig({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || '0rdhamr8',
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
   title: 'Portfolio Artur Dias',
-  plugins: [structureTool(), media()],
+  plugins: [
+    structureTool({
+      structure: (S) =>
+        S.list()
+          .title('Content')
+          .items([
+            S.documentTypeListItem('category').title('Categoria de Trabalho'),
+            S.documentTypeListItem('gallery').title('Galeria'),
+            S.documentTypeListItem('clientAlbum').title('Área do Cliente (Álbuns)'),
+            S.documentTypeListItem('featuredVideo').title('Vídeos (Página Inicial)'),
+          ]),
+    }),
+    media()
+  ],
   schema: {
     types: schema.types,
   },
