@@ -20,13 +20,8 @@ export default async function Portfolio() {
       ) : (
         <section className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 2xl:columns-5 gap-6">
           {categories.map((cat: any) => (
-            <Link href={`/categoria/${cat._id}`} key={cat._id} className="group break-inside-avoid mb-10 w-full block cursor-pointer transition-all">
+            <Link href={`/categoria/${cat._id}`} key={cat._id} className="group break-inside-avoid mb-6 w-full block cursor-pointer transition-all">
               
-              {/* Título Fixo Acima da Foto */}
-              <h2 className="text-sm font-bold tracking-widest uppercase text-gray-900 mb-3 text-center group-hover:text-gray-400 transition-colors">
-                {cat.title}
-              </h2>
-
               <div className="relative overflow-hidden bg-gray-50 shadow-sm group-hover:shadow-xl transition-shadow duration-500">
                 {cat.coverImage ? (
                   <img 
@@ -37,8 +32,13 @@ export default async function Portfolio() {
                 ) : (
                   <div className="w-full aspect-[4/5] bg-gray-200 flex items-center justify-center text-xs text-gray-400">Sem foto de capa</div>
                 )}
+
+                {/* Faixa Translúcida no Canto Superior Esquerdo */}
+                <div className="absolute top-6 left-0 bg-white/80 backdrop-blur-md text-black px-6 py-2.5 text-xs font-bold tracking-widest uppercase shadow-md group-hover:bg-white group-hover:pl-8 transition-all duration-300">
+                  {cat.title}
+                </div>
                 
-                {/* Filtro sutil ao passar o mouse para destacar o clique */}
+                {/* Filtro sutil ao passar o mouse */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-500 pointer-events-none" />
               </div>
             </Link>
