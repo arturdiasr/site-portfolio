@@ -38,7 +38,7 @@ export function MovePhotosTool() {
     client.fetch(`*[_type == "category" && _id == $id][0] {
       images[] {
         _key,
-        "url": asset->url
+        "url": asset->url + "?w=200&h=200&fit=crop&auto=format&q=60"
       }
     }`, { id: selectedCategory }).then(res => {
       setImages(res?.images || [])
