@@ -3,11 +3,11 @@
 export default function AnimatedBackground() {
   return (
     <div className="fixed inset-0 -z-50 pointer-events-none bg-white">
-      {/* 1. Textura de papel amassado que o usuário enviou */}
+      {/* 1. Textura de papel amassado nova (High Res) */}
       <div 
-        className="absolute inset-0 opacity-[0.35] mix-blend-multiply"
+        className="absolute inset-0 opacity-[0.70] mix-blend-multiply"
         style={{
-          backgroundImage: `url('/paper-texture.png')`,
+          backgroundImage: `url('/paper-texture-high-res.jpg')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
