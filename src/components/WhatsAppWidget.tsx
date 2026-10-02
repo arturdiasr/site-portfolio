@@ -22,10 +22,9 @@ export default function WhatsAppWidget() {
     >
       {/* Balão de Mensagem Limpo */}
       <div 
-        className={`bg-white px-5 py-4 shadow-xl border border-gray-100 transition-all duration-700 ease-out transform ${
+        className={`relative bg-white px-5 py-4 shadow-xl border border-gray-100 rounded-2xl transition-all duration-700 ease-out transform ${
           showBubble ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
         } group-hover:-translate-y-1`}
-        style={{ borderRadius: "20px 20px 0px 20px" }}
       >
         <p className="text-sm text-black font-semibold tracking-wide">
           Vamos conversar?
@@ -33,6 +32,16 @@ export default function WhatsAppWidget() {
         <p className="text-xs text-gray-500 mt-1">
           Me chame no WhatsApp
         </p>
+
+        {/* Ponta do Balão desenhada com SVG para um aspecto orgânico e natural apontando para a foto */}
+        <svg 
+          className="absolute -bottom-[13px] right-5 w-6 h-[14px] text-white" 
+          viewBox="0 0 24 16" 
+          fill="currentColor"
+          style={{ filter: "drop-shadow(0px 3px 2px rgba(0,0,0,0.06))" }}
+        >
+          <path d="M0 0 L16 0 L24 16 C 16 12 8 6 0 0 Z" />
+        </svg>
       </div>
 
       {/* Círculo com a Foto */}
