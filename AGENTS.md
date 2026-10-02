@@ -17,3 +17,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   4. Use `document.elementsFromPoint(e.clientX, e.clientY)` during `pointerup` or `pointermove` to identify the drop target via `data-*` attributes.
 
 - **Verificação de Domínio Obrigatória**: NUNCA assuma ou tente adivinhar a URL de produção exata ou o TLD (como `.com` vs `.com.br`) do usuário baseando-se em contextos incompletos, prints ou histórico. Ao configurar arquivos de SEO (`sitemap.xml`, `robots.txt`, meta tags) ou variáveis de ambiente (ex: `NEXT_PUBLIC_SITE_URL`), você DEVE pedir a confirmação explícita do domínio correto ao usuário antes de salvar os arquivos ou realizar commits.
+
+- **React UI State Debugging**: Whenever a user reports a button or action is 'not working' after the backend/API logic has been confirmed correct, prioritize checking for visual state bugs. Ensure that local React state representing persisted data is not being inadvertently cleared by unrelated UI interactions (such as unchecking a selection box), causing the UI to falsely appear as if the action failed.
