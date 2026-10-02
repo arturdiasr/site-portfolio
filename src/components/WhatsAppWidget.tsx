@@ -41,11 +41,11 @@ export default function WhatsAppWidget() {
       href={whatsappLink} 
       target="_blank" 
       rel="noopener noreferrer"
-      className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 group flex items-end gap-3"
+      className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 group flex items-end gap-2"
     >
       {/* Balão de Mensagem Limpo */}
       <div 
-        className={`relative bg-white px-4 py-2 mb-14 md:mb-16 shadow-xl border border-gray-100 rounded-2xl transition-all duration-700 ease-out transform ${
+        className={`relative bg-white px-4 py-2 mb-8 md:mb-10 shadow-xl border border-gray-100 rounded-2xl transition-all duration-700 ease-out transform ${
           showBubble ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
         } group-hover:-translate-y-1`}
       >
