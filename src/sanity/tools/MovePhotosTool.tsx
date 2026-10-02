@@ -23,6 +23,7 @@ export function MovePhotosTool() {
 
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
 
   const gridRef = React.useRef<HTMLDivElement>(null);
 
@@ -224,34 +225,13 @@ export function MovePhotosTool() {
     }
   }
 
-  const onDragStart = (e: React.DragEvent, idx: number) => {
-    setDraggedIdx(idx);
-    e.dataTransfer.effectAllowed = 'move';
-  }
-
-  const onDragOver = (e: React.DragEvent, idx: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (dragOverIdx !== idx) setDragOverIdx(idx);
-
-    if (gridRef.current) {
-      const rect = gridRef.current.getBoundingClientRect();
-      const edgeSize = 100;
-      
-      if (e.clientY < rect.top + edgeSize) {
-        gridRef.current.scrollTop -= 20;
-      } else if (e.clientY > rect.bottom - edgeSize) {
-        gridRef.current.scrollTop += 20;
-      }
-    }
-  }
-
-  const onDrop = async (e: React.DragEvent, dropIdx: number) => {
-    e.preventDefault();
+  const onDrop = async (dropIdx: number) => {
+    const currentDraggedIdx = draggedIdx;
+    setDraggedIdx(null);
     setDragOverIdx(null);
-    if (draggedIdx === null || draggedIdx === dropIdx) return;
+    if (currentDraggedIdx === null || currentDraggedIdx === dropIdx) return;
     
-    const draggedKey = images[draggedIdx]._key;
+    const draggedKey = images[currentDraggedIdx]._key;
     const isDraggingSelected = selectedImages.has(draggedKey);
     const keysToMove = isDraggingSelected ? new Set(selectedImages) : new Set([draggedKey]);
     
@@ -289,9 +269,52 @@ export function MovePhotosTool() {
       alert("Erro ao salvar ordem manual");
     } finally {
       setLoading(false);
-      setDraggedIdx(null);
     }
   }
+
+  useEffect(() => {
+    if (draggedIdx === null) return;
+
+    const handleMove = (e: PointerEvent) => {
+      setGhostPos({ x: e.clientX, y: e.clientY });
+      
+      const elements = document.elementsFromPoint(e.clientX, e.clientY);
+      const gridItem = elements.find(el => el.hasAttribute('data-idx'));
+      if (gridItem) {
+        const idx = parseInt(gridItem.getAttribute('data-idx')!, 10);
+        setDragOverIdx(idx);
+      } else {
+        setDragOverIdx(null);
+      }
+    };
+    
+    const handleUp = (e: PointerEvent) => {
+      // Find drop target at release time
+      let dropIdx = dragOverIdx;
+      if (dropIdx === null) {
+        const elements = document.elementsFromPoint(e.clientX, e.clientY);
+        const gridItem = elements.find(el => el.hasAttribute('data-idx'));
+        if (gridItem) {
+          dropIdx = parseInt(gridItem.getAttribute('data-idx')!, 10);
+        }
+      }
+      
+      if (dropIdx !== null) {
+        onDrop(dropIdx);
+      } else {
+        setDraggedIdx(null);
+        setDragOverIdx(null);
+      }
+    };
+
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleUp);
+    
+    return () => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+    };
+  }, [draggedIdx, dragOverIdx, images, selectedSource, selectedImages]);
 
   const handleMove = async () => {
     if (!selectedSource || !selectedGallery || selectedImages.size === 0) return
@@ -453,6 +476,7 @@ export function MovePhotosTool() {
                 return (
                   <div 
                     key={img._key} 
+                    data-idx={idx}
                     style={{ 
                       display: 'flex', 
                       flexDirection: 'column', 
@@ -460,9 +484,6 @@ export function MovePhotosTool() {
                       borderLeft: isDragOver ? '4px solid #2276fc' : 'none',
                       paddingLeft: isDragOver ? '4px' : '0'
                     }}
-                    onDragOver={(e) => onDragOver(e, idx)}
-                    onDrop={(e) => onDrop(e, idx)}
-                    onDragLeave={() => setDragOverIdx(null)}
                   >
                     <div 
                       onClick={(e) => toggleImage(idx, e)}
@@ -472,17 +493,22 @@ export function MovePhotosTool() {
                         border: isSelected ? '3px solid #2276fc' : '1px solid #ddd',
                         borderRadius: '4px',
                         overflow: 'hidden',
-                        aspectRatio: '1/1'
+                        aspectRatio: '1/1',
+                        opacity: draggedIdx === idx ? 0.5 : 1
                       }}
                     >
-                      <img src={img.url} style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} />
+                      <img src={img.url} style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} draggable={false} />
                       <div style={{ position: 'absolute', top: '5px', left: '5px', backgroundColor: 'white', padding: '2px', borderRadius: '3px' }}>
                         <input type="checkbox" checked={isSelected} readOnly style={{ margin: 0, pointerEvents: 'none' }} />
                       </div>
                       
                       <div 
-                        draggable
-                        onDragStart={(e) => onDragStart(e, idx)}
+                        onPointerDown={(e) => {
+                          e.preventDefault();
+                          // Also set pointer capture? Actually `window` event listeners are enough.
+                          setDraggedIdx(idx);
+                          setGhostPos({ x: e.clientX, y: e.clientY });
+                        }}
                         style={{ 
                           position: 'absolute', 
                           top: '5px', 
@@ -494,7 +520,8 @@ export function MovePhotosTool() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                          touchAction: 'none'
                         }}
                         title="Arraste por aqui para reordenar"
                         onClick={(e) => e.stopPropagation()}
@@ -567,6 +594,30 @@ export function MovePhotosTool() {
         {loading && !images.length && <p style={{ color: '#666' }}>Carregando...</p>}
 
       </div>
+
+      {/* Ghost Element */}
+      {draggedIdx !== null && (
+        <div style={{
+          position: 'fixed',
+          left: ghostPos.x + 15,
+          top: ghostPos.y + 15,
+          zIndex: 9999,
+          pointerEvents: 'none',
+          background: 'white',
+          padding: '4px',
+          border: '2px solid #2276fc',
+          borderRadius: '4px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+        }}>
+          <img src={images[draggedIdx].url} style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+          {selectedImages.size > 1 && selectedImages.has(images[draggedIdx]._key) && (
+            <div style={{ position: 'absolute', top: -10, right: -10, background: '#2276fc', color: 'white', borderRadius: '10px', padding: '2px 8px', fontSize: '12px', fontWeight: 'bold' }}>
+              {selectedImages.size}
+            </div>
+          )}
+        </div>
+      )}
+
     </div>
   )
 }
