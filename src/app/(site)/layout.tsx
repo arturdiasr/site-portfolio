@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppWidget from "@/components/WhatsAppWidget";
 import ScrollToTop from "@/components/ScrollToTop";
+import AnimatedBackground from "@/components/AnimatedBackground";
 
 // Fonte "Outfit" traz um ar muito moderno, jovem e geométrico
 const mainFont = Outfit({
@@ -43,7 +44,8 @@ export default function SiteLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className={`${mainFont.className} antialiased min-h-screen flex flex-col bg-white text-black`}>
+    <div className={`${mainFont.className} antialiased min-h-screen flex flex-col text-black relative`}>
+      <AnimatedBackground />
       <Header />
       <main className="flex-grow w-full mx-auto px-6 sm:px-10 md:px-16 xl:px-24 max-w-[2560px]">
         {children}
