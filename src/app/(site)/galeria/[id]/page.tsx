@@ -33,10 +33,10 @@ export default async function GaleriaPage({ params }: { params: Promise<{ id: st
   })) || [];
 
   return (
-    <div className="w-full space-y-20 pb-20">
-      <div className="pt-8 space-y-4 text-center">
+    <div className="w-full space-y-12 pb-20">
+      <div className="space-y-4 text-center">
         {gallery.category && (
-          <Link href={`/categoria/${gallery.category._id}`} className="text-gray-400 hover:text-black uppercase tracking-widest text-xs transition-colors mb-6 inline-block">
+          <Link href={`/categoria/${gallery.category._id}`} className="text-gray-400 hover:text-black uppercase tracking-widest text-xs transition-colors mb-4 inline-block">
             &larr; Voltar para {gallery.category.title}
           </Link>
         )}

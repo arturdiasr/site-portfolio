@@ -36,9 +36,9 @@ export default async function CategoriaPage({ params }: { params: Promise<{ id: 
   })) || [];
 
   return (
-    <div className="w-full space-y-20 pb-20">
-      <div className="pt-8 space-y-4 text-center">
-        <Link href="/" className="text-gray-400 hover:text-black uppercase tracking-widest text-xs transition-colors mb-6 inline-block">
+    <div className="w-full space-y-12 pb-20">
+      <div className="space-y-4 text-center">
+        <Link href="/" className="text-gray-400 hover:text-black uppercase tracking-widest text-xs transition-colors mb-4 inline-block">
           &larr; Voltar às Categorias
         </Link>
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter uppercase">{category.title}</h1>
