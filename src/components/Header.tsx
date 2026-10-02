@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { client } from "@/sanity/lib/client";
-import { RevealText, RevealNav } from "./HeaderAnimations";
+import { RevealFade, RevealNav } from "./HeaderAnimations";
 
 export default async function Header() {
   const query = `*[_type == "category"] | order(order asc, _createdAt asc) { _id, title }`;
@@ -12,9 +12,11 @@ export default async function Header() {
   return (
     <header className="w-full flex flex-col items-center py-12 px-8">
       {/* Logo Centralizada */}
-      <Link href="/" className="text-4xl font-extrabold tracking-tighter uppercase mb-8 hover:text-gray-700 transition-colors mix-blend-multiply text-black/90">
-        <RevealText text="Artur Dias" />
-      </Link>
+      <RevealFade delay={0.1}>
+        <Link href="/" className="text-4xl font-extrabold tracking-tighter uppercase mb-8 hover:text-gray-700 transition-colors mix-blend-multiply text-black/90 inline-block">
+          Artur Dias
+        </Link>
+      </RevealFade>
       
       {/* Menu Centralizado */}
       <RevealNav delay={0.3} className="flex items-center space-x-8 text-sm uppercase tracking-widest font-semibold mix-blend-multiply text-black/90">

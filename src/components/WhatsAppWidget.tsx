@@ -45,18 +45,15 @@ export default function WhatsAppWidget() {
     >
       {/* Balão de Mensagem Limpo */}
       <div 
-        className={`relative bg-white px-5 py-4 mb-4 md:mb-5 shadow-xl border border-gray-100 rounded-2xl transition-all duration-700 ease-out transform ${
+        className={`relative bg-white px-4 py-2 mb-14 md:mb-16 shadow-xl border border-gray-100 rounded-2xl transition-all duration-700 ease-out transform ${
           showBubble ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
         } group-hover:-translate-y-1`}
       >
         <p className="text-sm text-black font-semibold tracking-wide">
           Vamos conversar?
         </p>
-        <p className="text-xs text-gray-500 mt-1">
-          Me chame no WhatsApp
-        </p>
 
-        {/* Ponta do Balão desenhada com SVG para um aspecto orgânico e natural apontando para a foto */}
+        {/* Ponta do Balão desenhada com SVG apontando para a foto */}
         <svg 
           className="absolute -bottom-[13px] right-5 w-6 h-[14px] text-white" 
           viewBox="0 0 24 16" 
