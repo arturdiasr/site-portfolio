@@ -21,6 +21,21 @@ export function MovePhotosTool() {
   const [newGalleryDate, setNewGalleryDate] = useState('')
   const [selectedCoverKey, setSelectedCoverKey] = useState<string | null>(null)
 
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  const gridRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (draggedIdx !== null && gridRef.current) {
+        gridRef.current.scrollTop += e.deltaY;
+      }
+    };
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, [draggedIdx]);
+
   useEffect(() => {
     client.fetch(`{
       "categories": *[_type == "category"]{_id, title},
@@ -130,9 +145,6 @@ export function MovePhotosTool() {
     }
   }
 
-  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
-  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-
   const handleSortImages = async () => {
     if (!selectedSource || images.length === 0) return;
     setLoading(true);
@@ -145,24 +157,74 @@ export function MovePhotosTool() {
       const filenameMap = new Map();
       images.forEach(img => filenameMap.set(img._key, img.originalFilename || ''));
       
-      const sortedFullImages = [...(fullDoc.images as any[])].sort((a, b) => {
-        const nameA = filenameMap.get(a._key) || '';
-        const nameB = filenameMap.get(b._key) || '';
-        return nameA.localeCompare(nameB);
-      });
+      let sortedFullImages = [...(fullDoc.images as any[])];
+      let sortedLocalImages = [...images];
+
+      if (selectedImages.size > 0) {
+        // Sort only selected images in their existing positions
+        const selectedKeys = new Set(selectedImages);
+        
+        // Local state sorting
+        const localIndices: number[] = [];
+        const localSelected: any[] = [];
+        images.forEach((img, idx) => {
+          if (selectedKeys.has(img._key)) {
+            localIndices.push(idx);
+            localSelected.push(img);
+          }
+        });
+        
+        localSelected.sort((a, b) => {
+          const nameA = a.originalFilename || '';
+          const nameB = b.originalFilename || '';
+          return nameA.localeCompare(nameB);
+        });
+        
+        localIndices.forEach((idx, i) => {
+          sortedLocalImages[idx] = localSelected[i];
+        });
+
+        // Full doc sorting
+        const fullIndices: number[] = [];
+        const fullSelected: any[] = [];
+        sortedFullImages.forEach((img, idx) => {
+          if (selectedKeys.has(img._key)) {
+            fullIndices.push(idx);
+            fullSelected.push(img);
+          }
+        });
+        
+        fullSelected.sort((a, b) => {
+          const nameA = filenameMap.get(a._key) || '';
+          const nameB = filenameMap.get(b._key) || '';
+          return nameA.localeCompare(nameB);
+        });
+        
+        fullIndices.forEach((idx, i) => {
+          sortedFullImages[idx] = fullSelected[i];
+        });
+
+      } else {
+        // Sort everything
+        sortedFullImages.sort((a, b) => {
+          const nameA = filenameMap.get(a._key) || '';
+          const nameB = filenameMap.get(b._key) || '';
+          return nameA.localeCompare(nameB);
+        });
+        
+        sortedLocalImages.sort((a, b) => {
+          const nameA = a.originalFilename || '';
+          const nameB = b.originalFilename || '';
+          return nameA.localeCompare(nameB);
+        });
+      }
       
       await client.patch(selectedSource)
         .set({ images: sortedFullImages })
         .commit();
-        
-      const sortedLocalImages = [...images].sort((a, b) => {
-        const nameA = a.originalFilename || '';
-        const nameB = b.originalFilename || '';
-        return nameA.localeCompare(nameB);
-      });
       
       setImages(sortedLocalImages);
-      setSuccess("Fotos ordenadas de A-Z com sucesso!");
+      setSuccess(selectedImages.size > 0 ? `As ${selectedImages.size} fotos selecionadas foram ordenadas de A-Z!` : "Todas as fotos ordenadas de A-Z com sucesso!");
     } catch (e) {
       alert("Erro ao ordenar fotos");
     } finally {
@@ -357,7 +419,7 @@ export function MovePhotosTool() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '15px', maxHeight: '500px', overflowY: 'auto', padding: '5px', userSelect: 'none' }}>
+            <div ref={gridRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '15px', maxHeight: '500px', overflowY: 'auto', padding: '5px', userSelect: 'none' }}>
               {images.map((img, idx) => {
                 const isSelected = selectedImages.has(img._key);
                 const isCover = selectedCoverKey === img._key;
