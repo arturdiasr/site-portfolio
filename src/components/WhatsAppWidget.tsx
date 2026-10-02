@@ -9,7 +9,7 @@ export default function WhatsAppWidget() {
       className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 group flex items-end gap-3"
     >
       {/* Balão de Mensagem */}
-      <div className="bg-white px-5 py-4 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 transition-all duration-500 transform group-hover:-translate-y-2 group-hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)]">
+      <div className="bg-white/80 backdrop-blur-md px-5 py-4 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/50 transition-all duration-500 transform group-hover:-translate-y-2 group-hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)]">
         <p className="text-sm text-black font-semibold tracking-wide">
           Vamos conversar?
         </p>

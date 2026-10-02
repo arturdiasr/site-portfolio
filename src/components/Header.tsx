@@ -9,9 +9,9 @@ export default async function Header() {
   const videoCount = await client.fetch(videoQuery);
 
   return (
-    <header className="w-full flex flex-col items-center py-12 px-8">
+    <header className="w-full flex flex-col items-center py-6 px-8 sticky top-0 z-40 bg-white/60 backdrop-blur-md border-b border-white/20 shadow-sm">
       {/* Logo Centralizada */}
-      <Link href="/" className="text-4xl font-extrabold tracking-tighter uppercase mb-8 hover:text-gray-700 transition-colors">
+      <Link href="/" className="text-4xl font-extrabold tracking-tighter uppercase mb-6 hover:text-gray-700 transition-colors">
         Artur Dias
       </Link>
       
@@ -25,7 +25,7 @@ export default async function Header() {
           </Link>
           
           {/* Submenu visível ao passar o mouse */}
-          <div className="absolute left-1/2 -translate-x-1/2 top-full w-56 bg-white border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.12)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 flex flex-col py-3">
+          <div className="absolute left-1/2 -translate-x-1/2 top-full w-56 bg-white/80 backdrop-blur-lg border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.1)] rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 flex flex-col py-3 overflow-hidden">
             {categories.map((cat: any) => (
               <Link 
                 key={cat._id} 

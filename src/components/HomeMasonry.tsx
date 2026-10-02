@@ -73,9 +73,9 @@ export default function HomeMasonry({ items }: { items: any[] }) {
                   )}
                 </div>
 
-                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center pointer-events-none">
-                  <div className="text-center w-full px-4">
-                    <h2 className="text-black bg-white/95 px-6 py-3 text-xl font-bold tracking-widest uppercase shadow-xl inline-block">{item.title}</h2>
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center pointer-events-none">
+                  <div className="text-center w-full px-4 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                    <h2 className="text-black bg-white/60 backdrop-blur-md border border-white/40 px-6 py-3 text-xl font-bold tracking-widest uppercase shadow-[0_8px_30px_rgb(0,0,0,0.12)] inline-block">{item.title}</h2>
                   </div>
                 </div>
               </Link>
