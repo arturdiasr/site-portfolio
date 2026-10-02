@@ -6,26 +6,39 @@ import LatestWorksCarousel from "@/components/LatestWorksCarousel";
 export const revalidate = 0;
 
 export default async function Portfolio() {
-  // Busca tanto categorias quanto vídeos e os ordena misturados
-  const query = `*[(_type == "category" || _type == "featuredVideo")] | order(order asc, _createdAt asc) {
+  // Busca categorias
+  const catQuery = `*[_type == "category"] | order(order asc, _createdAt asc) {
     _id,
     _type,
     title,
     order,
-    
-    // Campos de Categoria
     "categoryCover": coalesce(images[isCover == true][0], coverImage),
-    "categoryAspect": coalesce(images[isCover == true][0].asset->metadata.dimensions.aspectRatio, coverImage.asset->metadata.dimensions.aspectRatio),
-    
-    // Campos de Vídeo
+    "categoryAspect": coalesce(images[isCover == true][0].asset->metadata.dimensions.aspectRatio, coverImage.asset->metadata.dimensions.aspectRatio)
+  }`;
+  const categories = await client.fetch(catQuery);
+
+  // Busca vídeos
+  const vidQuery = `*[_type == "featuredVideo"] | order(order asc, _createdAt asc) {
+    _id,
     videoType,
-    "videoFileUrl": videoFile.asset->url,
-    youtubeUrl,
     "videoCover": coverImage,
     format
   }`;
-  
-  const items = await client.fetch(query);
+  const videos = await client.fetch(vidQuery);
+
+  const items = [...categories];
+
+  // Cria um card de categoria "Vídeos" no final usando a capa do primeiro vídeo
+  if (videos.length > 0) {
+    items.push({
+      _id: 'videos',
+      _type: 'category',
+      title: 'Vídeos',
+      categoryCover: videos[0].videoCover,
+      categoryAspect: videos[0].format === 'Horizontal (ex: YouTube/Cinema)' ? 1.5 : 0.8,
+      isMockVideoCategory: true
+    });
+  }
 
   // Busca os 10 trabalhos mais recentes (sub-galerias)
   const latestQuery = `*[_type == "gallery"] | order(workDate desc, _createdAt desc)[0...10] {

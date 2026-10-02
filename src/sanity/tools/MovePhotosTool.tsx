@@ -55,17 +55,87 @@ export function MovePhotosTool() {
     client.fetch(`*[_id == $id][0] {
       images[] {
         _key,
+        isCover,
+        asset,
         "url": asset->url + "?w=200&h=200&fit=crop&auto=format&q=60",
         "originalFilename": asset->originalFilename
       }
     }`, { id: selectedSource }).then(res => {
       setImages(res?.images || [])
+      const currentCover = res?.images?.find((i: any) => i.isCover)?._key || null;
+      setSelectedCoverKey(currentCover)
       setSelectedImages(new Set())
       setLastSelectedIdx(null)
-      setSelectedCoverKey(null)
       setLoading(false)
     })
   }, [selectedSource, categories])
+
+  const applyPatch = async (id: string, buildPatch: (patcher: any) => any) => {
+    const publishedId = id.replace('drafts.', '');
+    const draftId = `drafts.${publishedId}`;
+    
+    let patched = false;
+    try {
+      await buildPatch(client.patch(draftId)).commit();
+      patched = true;
+    } catch (e) {}
+    
+    try {
+      await buildPatch(client.patch(publishedId)).commit();
+      patched = true;
+    } catch (e) {}
+    
+    if (!patched) throw new Error("Patch failed");
+  }
+
+  const handleSetCover = async (img: any) => {
+    setLoading(true);
+    setSuccess('');
+    try {
+      const fullDoc = await client.getDocument(selectedSource);
+      if (!fullDoc || !fullDoc.images) return;
+
+      const updatedImages = (fullDoc.images as any[]).map(i => ({
+        ...i,
+        isCover: i._key === img._key
+      }));
+
+      await applyPatch(selectedSource, p => p.set({ 
+        images: updatedImages,
+        coverImage: { _type: 'image', asset: img.asset }
+      }));
+      
+      setSelectedCoverKey(img._key);
+      setSuccess("Capa definida com sucesso!");
+    } catch (e) {
+      alert("Erro ao definir capa.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleSetCategoryCover = async (img: any) => {
+    setLoading(true);
+    setSuccess('');
+    try {
+      const sourceGal = galleries.find(g => g._id === selectedSource);
+      const catId = sourceGal?.category?._ref;
+      if (!catId) {
+        alert("Esta galeria não tem categoria vinculada.");
+        return;
+      }
+      
+      await applyPatch(catId, p => p.set({ 
+        coverImage: { _type: 'image', asset: img.asset }
+      }));
+
+      setSuccess("Capa da categoria principal definida com sucesso!");
+    } catch (e) {
+      alert("Erro ao definir capa da categoria.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const handleCreateGallery = async () => {
     if (!newGalleryTitle || !selectedSource) return
@@ -113,13 +183,11 @@ export function MovePhotosTool() {
           next.add(k)
         } else {
           next.delete(k)
-          if (selectedCoverKey === k) setSelectedCoverKey(null)
         }
       }
     } else {
       if (next.has(key)) {
         next.delete(key)
-        if (selectedCoverKey === key) setSelectedCoverKey(null)
       } else {
         next.add(key)
       }
@@ -132,7 +200,6 @@ export function MovePhotosTool() {
   const toggleAll = () => {
     if (selectedImages.size === images.length) {
       setSelectedImages(new Set())
-      setSelectedCoverKey(null)
     } else {
       setSelectedImages(new Set(images.map(img => img._key)))
     }
@@ -212,9 +279,7 @@ export function MovePhotosTool() {
         });
       }
       
-      await client.patch(selectedSource)
-        .set({ images: sortedFullImages })
-        .commit();
+      await applyPatch(selectedSource, p => p.set({ images: sortedFullImages }));
       
       setImages(sortedLocalImages);
       setSuccess(selectedImages.size > 0 ? `As ${selectedImages.size} fotos selecionadas foram ordenadas de A-Z!` : "Todas as fotos ordenadas de A-Z com sucesso!");
@@ -260,9 +325,7 @@ export function MovePhotosTool() {
       
       fullRemaining.splice(fullInsertIdx, 0, ...fullMoved);
       
-      await client.patch(selectedSource)
-        .set({ images: fullRemaining })
-        .commit();
+      await applyPatch(selectedSource, p => p.set({ images: fullRemaining }));
         
       setSuccess(`${keysToMove.size} foto(s) reordenada(s) livremente com sucesso!`);
     } catch (err) {
@@ -332,14 +395,8 @@ export function MovePhotosTool() {
       })
       const imagesToKeep = (fullDoc.images as any[]).filter(img => !selectedImages.has(img._key))
       
-      await client.patch(selectedGallery)
-        .setIfMissing({ images: [] })
-        .append('images', imagesToMove)
-        .commit()
-        
-      await client.patch(selectedSource)
-        .set({ images: imagesToKeep })
-        .commit()
+      await applyPatch(selectedGallery, p => p.setIfMissing({ images: [] }).append('images', imagesToMove));
+      await applyPatch(selectedSource, p => p.set({ images: imagesToKeep }));
         
       setSuccess(`${selectedImages.size} fotos movidas com sucesso!`)
       setImages(imagesToKeep)
@@ -444,7 +501,7 @@ export function MovePhotosTool() {
                       setLoading(true);
                       try {
                         const unsets = Array.from(selectedImages).map(key => `images[_key=="${key}"]`);
-                        await client.patch(selectedSource).unset(unsets).commit();
+                        await applyPatch(selectedSource, p => p.unset(unsets));
                         setImages(images.filter(img => !selectedImages.has(img._key)));
                         setSelectedImages(new Set());
                         setSuccess("Fotos excluídas com sucesso!");
@@ -546,21 +603,41 @@ export function MovePhotosTool() {
                       {img.originalFilename || 'Sem nome'}
                     </div>
                     {isSelected && (
-                      <button 
-                        onClick={() => setSelectedCoverKey(isCover ? null : img._key)}
-                        style={{
-                          fontSize: '11px',
-                          padding: '4px',
-                          borderRadius: '4px',
-                          border: isCover ? '1px solid #2276fc' : '1px solid #ccc',
-                          background: isCover ? '#e8f0fe' : 'transparent',
-                          color: isCover ? '#2276fc' : '#666',
-                          cursor: 'pointer',
-                          fontWeight: isCover ? 'bold' : 'normal'
-                        }}
-                      >
-                        {isCover ? "★ Capa Definida" : "Definir Capa"}
-                      </button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleSetCover(img); }}
+                          disabled={loading}
+                          style={{
+                            fontSize: '11px',
+                            padding: '4px',
+                            borderRadius: '4px',
+                            border: isCover ? '1px solid #2276fc' : '1px solid #ccc',
+                            background: isCover ? '#e8f0fe' : 'transparent',
+                            color: isCover ? '#2276fc' : '#666',
+                            cursor: 'pointer',
+                            fontWeight: isCover ? 'bold' : 'normal'
+                          }}
+                        >
+                          {isCover ? "★ Capa Desta Galeria" : "Capa Desta Galeria"}
+                        </button>
+                        {selectedSourceType === 'gallery' && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleSetCategoryCover(img); }}
+                            disabled={loading}
+                            style={{
+                              fontSize: '11px',
+                              padding: '4px',
+                              borderRadius: '4px',
+                              border: '1px solid #ccc',
+                              background: 'transparent',
+                              color: '#666',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Capa da Categoria
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 );

@@ -5,6 +5,9 @@ export default async function Header() {
   const query = `*[_type == "category"] | order(order asc, _createdAt asc) { _id, title }`;
   const categories = await client.fetch(query);
 
+  const videoQuery = `count(*[_type == "featuredVideo"])`;
+  const videoCount = await client.fetch(videoQuery);
+
   return (
     <header className="w-full flex flex-col items-center py-12 px-8">
       {/* Logo Centralizada */}
@@ -32,6 +35,14 @@ export default async function Header() {
                 {cat.title}
               </Link>
             ))}
+            {videoCount > 0 && (
+              <Link 
+                href="/videos" 
+                className="px-6 py-3 hover:bg-gray-50 hover:text-black text-gray-500 text-xs transition-colors text-center"
+              >
+                VÍDEOS
+              </Link>
+            )}
           </div>
         </div>
 

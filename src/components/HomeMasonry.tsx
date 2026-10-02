@@ -29,12 +29,7 @@ export default function HomeMasonry({ items }: { items: any[] }) {
 
   items.forEach(item => {
     // Calcula o aspecto (altura relativa)
-    let isLandscape = false;
-    if (item._type === 'featuredVideo') {
-      isLandscape = item.format === 'Horizontal (ex: YouTube/Cinema)';
-    } else {
-      isLandscape = item.categoryAspect && item.categoryAspect > 1.1;
-    }
+    let isLandscape = item.categoryAspect && item.categoryAspect > 1.1;
     const heightWeight = isLandscape ? 0.666 : 1.25;
 
     // Encontra a coluna mais curta
@@ -55,30 +50,13 @@ export default function HomeMasonry({ items }: { items: any[] }) {
       {columns.map((col, i) => (
         <div key={i} className="flex flex-col gap-6 w-full min-w-0">
           {col.items.map(item => {
-            // LÓGICA PARA VÍDEOS
-            if (item._type === 'featuredVideo') {
-              const isLandscape = item.format === 'Horizontal (ex: YouTube/Cinema)';
-              const aspectClass = isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
-              
-              return (
-                <div className="w-full" key={item._id}>
-                  <VideoCard 
-                    video={{
-                      ...item,
-                      coverImage: item.videoCover ? urlForImage(item.videoCover).url() : ''
-                    }} 
-                    aspectClass={aspectClass}
-                  />
-                </div>
-              );
-            }
-
             // LÓGICA PARA CATEGORIAS
             const isLandscape = item.categoryAspect && item.categoryAspect > 1.1;
             const aspectClass = isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
+            const targetHref = item.isMockVideoCategory ? '/videos' : `/categoria/${item._id}`;
 
             return (
-              <Link data-cursor="VER" href={`/categoria/${item._id}`} key={item._id} className="group relative w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all">
+              <Link data-cursor="VER" href={targetHref} key={item._id} className="group relative w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all">
                 <div className={`w-full relative ${aspectClass}`}>
                   {item.categoryCover ? (
                     <div className="absolute inset-0 w-full h-full">
