@@ -17,7 +17,7 @@ export default function AnimatedBackground() {
       >
         {/* 1. Textura de papel amassado nova (High Res) */}
         <div 
-          className="absolute inset-0 opacity-[0.40] mix-blend-multiply"
+          className="absolute inset-0 opacity-[0.28] mix-blend-multiply"
           style={{
             backgroundImage: `url('/paper-texture-high-res.jpg')`,
             backgroundSize: 'cover',
