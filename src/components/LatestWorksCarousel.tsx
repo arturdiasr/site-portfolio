@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { motion } from "framer-motion";
 
 type Gallery = {
   _id: string;
@@ -61,13 +62,20 @@ export default function LatestWorksCarousel({ galleries }: { galleries: Gallery[
         ref={carouselRef}
         className="flex overflow-x-auto gap-6 snap-x snap-mandatory pb-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] w-full"
       >
-        {galleries.map((gallery) => (
-          <Link 
-            key={gallery._id} 
-            href={`/galeria/${gallery._id}`}
-            data-cursor="VER"
+        {galleries.map((gallery, index) => (
+          <motion.div
+            key={gallery._id}
+            initial={{ opacity: 0, x: 30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: index * 0.05 }}
             className="flex flex-col flex-none w-[75vw] sm:w-[45vw] md:w-[30vw] lg:w-[18vw] snap-start group cursor-pointer"
           >
+            <Link 
+              href={`/galeria/${gallery._id}`}
+              data-cursor="VER"
+              className="flex flex-col h-full w-full"
+            >
             {/* Título flexível acima da foto */}
             <div className="flex-grow flex items-end justify-center mb-3">
               <h3 className="text-xs md:text-sm font-bold uppercase tracking-widest text-center group-hover:text-gray-500 transition-colors">
@@ -98,7 +106,8 @@ export default function LatestWorksCarousel({ galleries }: { galleries: Gallery[
                 {gallery.workDate}
               </p>
             )}
-          </Link>
+            </Link>
+          </motion.div>
         ))}
       </div>
     </div>

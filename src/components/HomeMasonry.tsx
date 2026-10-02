@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import VideoCard from "@/components/VideoCard";
 import { urlForImage } from "@/sanity/lib/image";
+import { motion } from "framer-motion";
 
 export default function HomeMasonry({ items }: { items: any[] }) {
   const [cols, setCols] = useState(3);
@@ -56,29 +57,37 @@ export default function HomeMasonry({ items }: { items: any[] }) {
             const targetHref = item.isMockVideoCategory ? '/videos' : `/categoria/${item._id}`;
 
             return (
-              <Link data-cursor="VER" href={targetHref} key={item._id} className="group relative w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all">
-                <div className={`w-full relative ${aspectClass}`}>
-                  {item.categoryCover ? (
-                    <div className="absolute inset-0 w-full h-full">
-                      <Image 
-                        src={urlForImage(item.categoryCover).url()} 
-                        alt={item.title}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        className="object-cover transition-transform duration-1000 group-hover:scale-105"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center text-xs text-gray-400">Sem foto de capa</div>
-                  )}
-                </div>
-
-                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center pointer-events-none">
-                  <div className="text-center w-full px-4">
-                    <h2 className="text-black bg-white/95 px-6 py-3 text-xl font-bold tracking-widest uppercase shadow-xl inline-block">{item.title}</h2>
+              <motion.div
+                key={item._id}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <Link data-cursor="VER" href={targetHref} className="group relative w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all">
+                  <div className={`w-full relative ${aspectClass}`}>
+                    {item.categoryCover ? (
+                      <div className="absolute inset-0 w-full h-full">
+                        <Image 
+                          src={urlForImage(item.categoryCover).url()} 
+                          alt={item.title}
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          className="object-cover transition-transform duration-1000 group-hover:scale-105"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-full h-full bg-gray-200 flex items-center justify-center text-xs text-gray-400">Sem foto de capa</div>
+                    )}
                   </div>
-                </div>
-              </Link>
+
+                  <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center pointer-events-none">
+                    <div className="text-center w-full px-4">
+                      <h2 className="text-black bg-white/95 px-6 py-3 text-xl font-bold tracking-widest uppercase shadow-xl inline-block">{item.title}</h2>
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
             );
           })}
         </div>
