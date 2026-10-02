@@ -81,8 +81,8 @@ export default async function Portfolio() {
         {/* Gradiente do papel para o branco (começa acima do carrossel) */}
         <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[100vw] h-32 bg-gradient-to-b from-white/0 to-white -z-10 pointer-events-none" />
         
-        {/* Fundo branco sólido que se estende até o final da página (cobre o footer também) */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[100vw] h-[1000px] bg-white -z-10 pointer-events-none" />
+        {/* Fundo branco sólido que acompanha apenas a altura da sessão */}
+        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[100vw] bg-white -z-10 pointer-events-none" />
 
         <LatestWorksCarousel galleries={formattedLatestGalleries} />
       </div>

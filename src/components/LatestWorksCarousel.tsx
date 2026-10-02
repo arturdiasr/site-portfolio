@@ -32,7 +32,7 @@ export default function LatestWorksCarousel({ galleries }: { galleries: Gallery[
   }
 
   return (
-    <div className="w-full mt-24 mb-10">
+    <div className="w-full mt-24 mb-0">
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-3xl md:text-4xl font-extrabold tracking-widest uppercase">Últimos Trabalhos</h2>
         

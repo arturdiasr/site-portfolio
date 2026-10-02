@@ -7,10 +7,33 @@ export default function WhatsAppWidget() {
   const whatsappLink = "https://wa.me/5561991071783?text=Ol%C3%A1%2C%20Artur!%20Gostaria%20de%20conversar%20sobre%20o%20seu%20trabalho%20de%20fotografia.";
   
   useEffect(() => {
-    const timer = setTimeout(() => {
+    let showTimer: NodeJS.Timeout;
+    let hideTimer: NodeJS.Timeout;
+
+    const cycle = () => {
+      // Mostra por 10 segundos
       setShowBubble(true);
+      
+      hideTimer = setTimeout(() => {
+        // Esconde por 30 segundos
+        setShowBubble(false);
+        
+        showTimer = setTimeout(() => {
+          cycle(); // Reinicia o ciclo
+        }, 30000);
+      }, 10000);
+    };
+
+    // Delay inicial leve de 2.5s antes de começar o ciclo
+    const initial = setTimeout(() => {
+      cycle();
     }, 2500);
-    return () => clearTimeout(timer);
+
+    return () => {
+      clearTimeout(initial);
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    };
   }, []);
 
   return (
@@ -22,7 +45,7 @@ export default function WhatsAppWidget() {
     >
       {/* Balão de Mensagem Limpo */}
       <div 
-        className={`relative bg-white px-5 py-4 shadow-xl border border-gray-100 rounded-2xl transition-all duration-700 ease-out transform ${
+        className={`relative bg-white px-5 py-4 mb-4 md:mb-5 shadow-xl border border-gray-100 rounded-2xl transition-all duration-700 ease-out transform ${
           showBubble ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
         } group-hover:-translate-y-1`}
       >
