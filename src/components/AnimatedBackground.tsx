@@ -15,14 +15,14 @@ export default function AnimatedBackground() {
         className="absolute inset-[-5%] w-[110%] h-[110%]" 
         style={{ scale, y }}
       >
-        {/* 1. Textura de papel amassado nova (High Res) */}
+        {/* 1. Textura de papel amassado nova (High Res) tiled for crispness */}
         <div 
           className="absolute inset-0 opacity-[0.28] mix-blend-multiply"
           style={{
             backgroundImage: `url('/paper-texture-high-res.jpg')`,
-            backgroundSize: 'cover',
+            backgroundSize: '600px',
             backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
+            backgroundRepeat: 'repeat',
           }}
         />
 

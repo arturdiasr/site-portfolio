@@ -10,7 +10,7 @@ export default async function Header() {
   const videoCount = await client.fetch(videoQuery);
 
   return (
-    <header className="w-full flex flex-col items-center py-12 px-8">
+    <header className="w-full flex flex-col items-center py-12 px-8 relative z-50">
       {/* Logo Centralizada */}
       <RevealFade delay={0.1}>
         <Link href="/" className="text-4xl font-extrabold tracking-tighter uppercase mb-8 hover:text-gray-700 transition-colors mix-blend-multiply text-black/90 inline-block">

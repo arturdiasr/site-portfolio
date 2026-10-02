@@ -45,7 +45,7 @@ export default function WhatsAppWidget() {
     >
       {/* Balão de Mensagem Limpo */}
       <div 
-        className={`relative bg-white px-4 py-2 mb-8 md:mb-10 shadow-xl border border-gray-100 rounded-2xl transition-all duration-700 ease-out transform ${
+        className={`relative bg-white px-4 py-2 mb-6 md:mb-8 shadow-xl border border-gray-100 rounded-2xl transition-all duration-700 ease-out transform ${
           showBubble ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
         } group-hover:-translate-y-1`}
       >
