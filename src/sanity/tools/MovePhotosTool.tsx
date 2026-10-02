@@ -411,8 +411,31 @@ export function MovePhotosTool() {
                   onClick={handleSortImages}
                   disabled={loading}
                 >
-                  Ordenar A-Z (Por Nome Original)
+                  Ordenar A-Z
                 </button>
+                {selectedImages.size > 0 && (
+                  <button 
+                    style={{ padding: '6px 12px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #f87171', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                    onClick={async () => {
+                      if (!confirm(`Tem certeza que deseja EXCLUIR ${selectedImages.size} foto(s) desta galeria?`)) return;
+                      setLoading(true);
+                      try {
+                        const unsets = Array.from(selectedImages).map(key => `images[_key=="${key}"]`);
+                        await client.patch(selectedSource).unset(unsets).commit();
+                        setImages(images.filter(img => !selectedImages.has(img._key)));
+                        setSelectedImages(new Set());
+                        setSuccess("Fotos excluídas com sucesso!");
+                      } catch(e) {
+                        alert("Erro ao excluir fotos.");
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={loading}
+                  >
+                    Excluir Selecionadas
+                  </button>
+                )}
                 <button 
                   style={{ padding: '6px 12px', background: 'transparent', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer' }}
                   onClick={toggleAll}
@@ -437,8 +460,6 @@ export function MovePhotosTool() {
                       borderLeft: isDragOver ? '4px solid #2276fc' : 'none',
                       paddingLeft: isDragOver ? '4px' : '0'
                     }}
-                    draggable
-                    onDragStart={(e) => onDragStart(e, idx)}
                     onDragOver={(e) => onDragOver(e, idx)}
                     onDrop={(e) => onDrop(e, idx)}
                     onDragLeave={() => setDragOverIdx(null)}
@@ -447,7 +468,7 @@ export function MovePhotosTool() {
                       onClick={(e) => toggleImage(idx, e)}
                       style={{ 
                         position: 'relative', 
-                        cursor: 'grab',
+                        cursor: 'pointer',
                         border: isSelected ? '3px solid #2276fc' : '1px solid #ddd',
                         borderRadius: '4px',
                         overflow: 'hidden',
@@ -458,6 +479,36 @@ export function MovePhotosTool() {
                       <div style={{ position: 'absolute', top: '5px', left: '5px', backgroundColor: 'white', padding: '2px', borderRadius: '3px' }}>
                         <input type="checkbox" checked={isSelected} readOnly style={{ margin: 0, pointerEvents: 'none' }} />
                       </div>
+                      
+                      <div 
+                        draggable
+                        onDragStart={(e) => onDragStart(e, idx)}
+                        style={{ 
+                          position: 'absolute', 
+                          top: '5px', 
+                          right: '5px', 
+                          backgroundColor: 'rgba(255,255,255,0.8)', 
+                          padding: '4px', 
+                          borderRadius: '3px',
+                          cursor: 'grab',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                        }}
+                        title="Arraste por aqui para reordenar"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="8" y1="6" x2="21" y2="6"></line>
+                          <line x1="8" y1="12" x2="21" y2="12"></line>
+                          <line x1="8" y1="18" x2="21" y2="18"></line>
+                          <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                          <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                          <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                        </svg>
+                      </div>
+
                       {isCover && (
                         <div style={{ position: 'absolute', bottom: '0', left: '0', width: '100%', background: 'rgba(34, 118, 252, 0.9)', color: 'white', fontSize: '10px', textAlign: 'center', padding: '4px 0', fontWeight: 'bold' }}>
                           FOTO DE CAPA
