@@ -15,3 +15,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   2. Use `onPointerDown` to set the dragged item state and capture the initial cursor position.
   3. Use global `window` event listeners for `pointermove` (to move a fixed-position visual ghost) and `pointerup` (to trigger the drop).
   4. Use `document.elementsFromPoint(e.clientX, e.clientY)` during `pointerup` or `pointermove` to identify the drop target via `data-*` attributes.
+
+- **Verificação de Domínio Obrigatória**: NUNCA assuma ou tente adivinhar a URL de produção exata ou o TLD (como `.com` vs `.com.br`) do usuário baseando-se em contextos incompletos, prints ou histórico. Ao configurar arquivos de SEO (`sitemap.xml`, `robots.txt`, meta tags) ou variáveis de ambiente (ex: `NEXT_PUBLIC_SITE_URL`), você DEVE pedir a confirmação explícita do domínio correto ao usuário antes de salvar os arquivos ou realizar commits.
