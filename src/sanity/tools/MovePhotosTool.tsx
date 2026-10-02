@@ -26,15 +26,7 @@ export function MovePhotosTool() {
 
   const gridRef = React.useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      if (draggedIdx !== null && gridRef.current) {
-        gridRef.current.scrollTop += e.deltaY;
-      }
-    };
-    window.addEventListener('wheel', handleWheel, { passive: false });
-    return () => window.removeEventListener('wheel', handleWheel);
-  }, [draggedIdx]);
+
 
   useEffect(() => {
     client.fetch(`{
@@ -241,6 +233,17 @@ export function MovePhotosTool() {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     if (dragOverIdx !== idx) setDragOverIdx(idx);
+
+    if (gridRef.current) {
+      const rect = gridRef.current.getBoundingClientRect();
+      const edgeSize = 100;
+      
+      if (e.clientY < rect.top + edgeSize) {
+        gridRef.current.scrollTop -= 20;
+      } else if (e.clientY > rect.bottom - edgeSize) {
+        gridRef.current.scrollTop += 20;
+      }
+    }
   }
 
   const onDrop = async (e: React.DragEvent, dropIdx: number) => {
