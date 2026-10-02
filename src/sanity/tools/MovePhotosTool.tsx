@@ -130,6 +130,9 @@ export function MovePhotosTool() {
     }
   }
 
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
   const handleSortImages = async () => {
     if (!selectedSource || images.length === 0) return;
     setLoading(true);
@@ -164,6 +167,64 @@ export function MovePhotosTool() {
       alert("Erro ao ordenar fotos");
     } finally {
       setLoading(false);
+    }
+  }
+
+  const onDragStart = (e: React.DragEvent, idx: number) => {
+    setDraggedIdx(idx);
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
+  const onDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIdx !== idx) setDragOverIdx(idx);
+  }
+
+  const onDrop = async (e: React.DragEvent, dropIdx: number) => {
+    e.preventDefault();
+    setDragOverIdx(null);
+    if (draggedIdx === null || draggedIdx === dropIdx) return;
+    
+    const draggedKey = images[draggedIdx]._key;
+    const isDraggingSelected = selectedImages.has(draggedKey);
+    const keysToMove = isDraggingSelected ? new Set(selectedImages) : new Set([draggedKey]);
+    
+    const movedItems = images.filter(img => keysToMove.has(img._key));
+    const remainingItems = images.filter(img => !keysToMove.has(img._key));
+    
+    const dropKey = images[dropIdx]._key;
+    let insertIdx = remainingItems.findIndex(img => img._key === dropKey);
+    if (insertIdx === -1) insertIdx = remainingItems.length;
+    
+    const newImages = [...remainingItems];
+    newImages.splice(insertIdx, 0, ...movedItems);
+    
+    setImages(newImages);
+    setLoading(true);
+    
+    try {
+      const fullDoc = await client.getDocument(selectedSource);
+      if (!fullDoc || !fullDoc.images) return;
+      
+      const fullMoved = (fullDoc.images as any[]).filter(img => keysToMove.has(img._key));
+      const fullRemaining = (fullDoc.images as any[]).filter(img => !keysToMove.has(img._key));
+      
+      let fullInsertIdx = fullRemaining.findIndex(img => img._key === dropKey);
+      if (fullInsertIdx === -1) fullInsertIdx = fullRemaining.length;
+      
+      fullRemaining.splice(fullInsertIdx, 0, ...fullMoved);
+      
+      await client.patch(selectedSource)
+        .set({ images: fullRemaining })
+        .commit();
+        
+      setSuccess(`${keysToMove.size} foto(s) reordenada(s) livremente com sucesso!`);
+    } catch (err) {
+      alert("Erro ao salvar ordem manual");
+    } finally {
+      setLoading(false);
+      setDraggedIdx(null);
     }
   }
 
@@ -277,7 +338,7 @@ export function MovePhotosTool() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
                 <p style={{ fontWeight: '600', margin: 0 }}>3. Selecione as fotos ({selectedImages.size} de {images.length} selecionadas)</p>
-                <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>Dica: Segure SHIFT para selecionar várias de uma vez.</p>
+                <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>Dica: Segure SHIFT para selecionar várias de uma vez, ou **arraste as fotos** para reorganizar livremente!</p>
               </div>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button 
@@ -300,20 +361,35 @@ export function MovePhotosTool() {
               {images.map((img, idx) => {
                 const isSelected = selectedImages.has(img._key);
                 const isCover = selectedCoverKey === img._key;
+                const isDragOver = dragOverIdx === idx;
                 return (
-                  <div key={img._key} style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <div 
+                    key={img._key} 
+                    style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      gap: '5px',
+                      borderLeft: isDragOver ? '4px solid #2276fc' : 'none',
+                      paddingLeft: isDragOver ? '4px' : '0'
+                    }}
+                    draggable
+                    onDragStart={(e) => onDragStart(e, idx)}
+                    onDragOver={(e) => onDragOver(e, idx)}
+                    onDrop={(e) => onDrop(e, idx)}
+                    onDragLeave={() => setDragOverIdx(null)}
+                  >
                     <div 
                       onClick={(e) => toggleImage(idx, e)}
                       style={{ 
                         position: 'relative', 
-                        cursor: 'pointer',
+                        cursor: 'grab',
                         border: isSelected ? '3px solid #2276fc' : '1px solid #ddd',
                         borderRadius: '4px',
                         overflow: 'hidden',
                         aspectRatio: '1/1'
                       }}
                     >
-                      <img src={img.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={img.url} style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} />
                       <div style={{ position: 'absolute', top: '5px', left: '5px', backgroundColor: 'white', padding: '2px', borderRadius: '3px' }}>
                         <input type="checkbox" checked={isSelected} readOnly style={{ margin: 0, pointerEvents: 'none' }} />
                       </div>
