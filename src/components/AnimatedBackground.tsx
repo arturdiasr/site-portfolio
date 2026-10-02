@@ -9,7 +9,7 @@ export default function AnimatedBackground() {
       
       {/* Forma 1: Âmbar muito pálido, para um aquecimento sutil */}
       <motion.div
-        className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-amber-50/60 mix-blend-multiply blur-[120px]"
+        className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-amber-100/50 mix-blend-multiply blur-[120px]"
         animate={{
           x: ["0%", "15%", "0%"],
           y: ["0%", "20%", "0%"],
@@ -23,7 +23,7 @@ export default function AnimatedBackground() {
 
       {/* Forma 2: Azul cinza claro, traz equilíbrio e neutralidade */}
       <motion.div
-        className="absolute bottom-[-20%] right-[-10%] w-[70vw] h-[70vw] rounded-full bg-slate-100/70 mix-blend-multiply blur-[140px]"
+        className="absolute bottom-[-20%] right-[-10%] w-[70vw] h-[70vw] rounded-full bg-sky-100/50 mix-blend-multiply blur-[140px]"
         animate={{
           x: ["0%", "-15%", "0%"],
           y: ["0%", "-10%", "0%"],
