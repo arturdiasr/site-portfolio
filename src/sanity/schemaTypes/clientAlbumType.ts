@@ -1,4 +1,5 @@
 import {defineField, defineType} from 'sanity'
+import {PasswordInput, WhatsappMessageInput} from '../components/ClientAlbumInputs'
 
 export const clientAlbumType = defineType({
   name: 'clientAlbum',
@@ -22,9 +23,17 @@ export const clientAlbumType = defineType({
     defineField({
       name: 'password',
       title: 'Senha de Acesso',
-      description: 'A senha que o cliente precisará digitar para acessar a galeria.',
+      description: 'A senha que o cliente precisará digitar para acessar a galeria. Digite uma ou use os botões para gerar automaticamente.',
       type: 'string',
+      components: { input: PasswordInput },
       validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: 'whatsappMessage',
+      title: 'Mensagem para o Cliente (WhatsApp) — privado',
+      description: 'Visível só para você. Depois de preencher link, senha e fotos, copie e envie ao cliente.',
+      type: 'string',
+      components: { input: WhatsappMessageInput },
     }),
     defineField({
       name: 'coverImage',
