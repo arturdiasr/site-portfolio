@@ -2,6 +2,7 @@ import { client } from "@/sanity/lib/client";
 import { urlForImage } from "@/sanity/lib/image";
 import HomeMasonry from "@/components/HomeMasonry";
 import LatestWorksCarousel from "@/components/LatestWorksCarousel";
+import TestimonialsSection from "@/components/TestimonialsSection";
 
 export const revalidate = 0;
 
@@ -68,6 +69,10 @@ export default async function Portfolio() {
     };
   });
 
+  const testimonials = await client.fetch(
+    `*[_type == "testimonial" && approved == true] | order(_createdAt desc)[0...12] { _id, name, rating, text }`
+  );
+
   return (
     <div className="w-full">
       {items.length === 0 ? (
@@ -85,6 +90,8 @@ export default async function Portfolio() {
         <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[100vw] bg-white -z-10 pointer-events-none" />
 
         <LatestWorksCarousel galleries={formattedLatestGalleries} />
+
+        <TestimonialsSection testimonials={testimonials} />
       </div>
       
     </div>
