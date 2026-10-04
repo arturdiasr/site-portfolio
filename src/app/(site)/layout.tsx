@@ -15,9 +15,15 @@ const mainFont = Outfit({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://www.arturdiasfotografia.com.br"),
   title: "Artur Dias | Fotografia",
   description: "Portfólio de fotografia de eventos, arquitetura, música e ensaios em Brasília.",
   keywords: ["Fotografia", "Fotógrafo em Brasília", "Eventos", "Arquitetura", "Ensaios", "Música", "Shows"],
+  icons: {
+    icon: "/artur_perfil.jpg",
+    shortcut: "/artur_perfil.jpg",
+    apple: "/artur_perfil.jpg",
+  },
   openGraph: {
     type: "website",
     locale: "pt_BR",
@@ -25,6 +31,20 @@ export const metadata: Metadata = {
     siteName: "Artur Dias Fotografia",
     title: "Artur Dias | Fotografia",
     description: "Portfólio de fotografia de eventos, arquitetura, música e ensaios em Brasília.",
+    images: [
+      {
+        url: "/artur_perfil.jpg",
+        width: 1000,
+        height: 1000,
+        alt: "Artur Dias Fotografia",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "Artur Dias | Fotografia",
+    description: "Portfólio de fotografia de eventos, arquitetura, música e ensaios em Brasília.",
+    images: ["/artur_perfil.jpg"],
   },
   robots: {
     index: true,
