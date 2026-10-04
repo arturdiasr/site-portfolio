@@ -5,7 +5,7 @@ import { useFormValue, type StringInputProps } from 'sanity'
 export function DeliveryMessageInput(_props: StringInputProps) {
   const title = useFormValue(['title']) as string | undefined
   const slug = useFormValue(['slug']) as { current?: string } | undefined
-  const days = useFormValue(['validityDays']) as number | undefined
+  const days = 14 // validade fixa, igual à da página de entrega
   const [copied, setCopied] = useState(false)
 
   if (!slug?.current) {
@@ -20,7 +20,7 @@ Suas fotos finais estão prontas! 🎉
 
 🔗 Baixe aqui: ${link}
 
-⏳ O link fica disponível por ${days || 7} dias, então faça o download com calma, mas não deixe passar do prazo.
+⏳ O link fica disponível por ${days} dias, então faça o download com calma, mas não deixe passar do prazo.
 
 Espero que você ame o resultado!`
 

@@ -17,7 +17,7 @@ export default async function DeliveryPage({ params }: { params: Promise<{ slug:
 
   if (!delivery) notFound();
 
-  const days = delivery.validityDays === 14 ? 14 : 7;
+  const days = 14; // validade fixa (dias) a partir da criação da entrega
   const expiresAt = new Date(new Date(delivery._createdAt).getTime() + days * 24 * 60 * 60 * 1000);
   const expired = expiresAt.getTime() < Date.now();
   const daysLeft = Math.max(0, Math.ceil((expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));

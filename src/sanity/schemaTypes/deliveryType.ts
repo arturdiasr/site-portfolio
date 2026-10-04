@@ -28,21 +28,6 @@ export const deliveryType = defineType({
       validation: (rule) => rule.required().uri({ scheme: ['https', 'http'] }),
     }),
     defineField({
-      name: 'validityDays',
-      title: 'Validade do link no site',
-      description: 'Contado a partir da criação deste documento. Depois disso a página mostra "link expirado" e o link externo deixa de ser exibido.',
-      type: 'number',
-      options: {
-        list: [
-          { title: '7 dias', value: 7 },
-          { title: '14 dias', value: 14 },
-        ],
-        layout: 'radio',
-      },
-      initialValue: 7,
-      validation: (rule) => rule.required(),
-    }),
-    defineField({
       name: 'deliveryMessage',
       title: 'Mensagem para o Cliente (WhatsApp) — privado',
       description: 'Visível só para você. Copie e envie ao cliente.',
