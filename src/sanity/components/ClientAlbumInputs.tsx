@@ -65,7 +65,8 @@ export function WhatsappMessageInput(_props: StringInputProps) {
   }
 
   const link = `${window.location.origin}/cliente/${slug.current}`
-  const message = `Olá${title ? `, ${title}` : ''}! 📸
+  const firstName = title?.trim().split(/\s+/)[0]
+  const message = `Olá${firstName ? `, ${firstName}` : ''}! 📸
 
 Sua galeria de fotos está pronta! 🎉
 
@@ -79,7 +80,7 @@ Como escolher suas fotos:
 4️⃣ Acompanhe suas escolhidas na aba lateral.
 5️⃣ Quando terminar, clique em "Enviar Lista de Fotos".
 
-Pronto! Eu recebo a sua seleção e começo a edição das fotos escolhidas. 💛`
+Pronto! Eu recebo a sua seleção e começo a edição das fotos escolhidas.`
 
   const copy = async () => {
     await navigator.clipboard.writeText(message)
