@@ -11,16 +11,11 @@ export default async function DeliveryPage({ params }: { params: Promise<{ slug:
   const { slug } = await params;
 
   const delivery = await client.fetch(
-    `*[_type == "delivery" && slug.current == $slug][0]{ title, externalUrl, validityDays, _createdAt }`,
+    `*[_type == "delivery" && slug.current == $slug][0]{ title, externalUrl }`,
     { slug }
   );
 
   if (!delivery) notFound();
-
-  const days = 14; // validade fixa (dias) a partir da criação da entrega
-  const expiresAt = new Date(new Date(delivery._createdAt).getTime() + days * 24 * 60 * 60 * 1000);
-  const expired = expiresAt.getTime() < Date.now();
-  const daysLeft = Math.max(0, Math.ceil((expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
 
   return (
     <div className="w-full pt-8 pb-20">
@@ -32,11 +27,8 @@ export default async function DeliveryPage({ params }: { params: Promise<{ slug:
         <p className="text-xs tracking-widest uppercase text-gray-400">Entrega das Fotos Finais</p>
       </div>
 
-      {/* O link externo só é enviado ao navegador enquanto a entrega não expirou */}
       <DeliveryApp
-        expired={expired}
-        daysLeft={daysLeft}
-        downloadUrl={expired ? null : delivery.externalUrl}
+        downloadUrl={delivery.externalUrl}
       />
     </div>
   );

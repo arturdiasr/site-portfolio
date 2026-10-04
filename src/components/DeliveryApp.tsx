@@ -11,12 +11,8 @@ function Star({ filled, className = '' }: { filled: boolean; className?: string 
 }
 
 export default function DeliveryApp({
-  expired,
-  daysLeft,
   downloadUrl,
 }: {
-  expired: boolean;
-  daysLeft: number;
   downloadUrl: string | null;
 }) {
   const [showReview, setShowReview] = useState(false);
@@ -59,33 +55,23 @@ export default function DeliveryApp({
     }
   };
 
-  if (expired) {
-    return (
-      <div className="max-w-lg mx-auto text-center bg-white shadow-xl p-10 md:p-14">
-        <p className="text-5xl mb-4">⏳</p>
-        <h2 className="text-xl font-bold uppercase tracking-widest mb-3">Link expirado</h2>
-        <p className="text-gray-500 text-sm">O prazo para download destas fotos terminou. Entre em contato para solicitar um novo link.</p>
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="max-w-lg mx-auto text-center bg-white shadow-xl p-10 md:p-14">
         <p className="text-5xl mb-4">📸</p>
         <h2 className="text-xl font-bold uppercase tracking-widest mb-3">Suas fotos estão prontas!</h2>
         <p className="text-gray-500 text-sm mb-8">
-          Disponível por mais <strong>{daysLeft} {daysLeft === 1 ? 'dia' : 'dias'}</strong>. Baixe com calma, em qualidade original.
+          Clique no botão abaixo para baixar todas as suas fotos em qualidade original.
         </p>
         <button
           onClick={handleDownload}
-          className="w-full bg-black text-white p-4 font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors flex items-center justify-center gap-3"
+          className="w-full bg-black text-white p-4 font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors flex items-center justify-center gap-3 cursor-pointer"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" /></svg>
           Baixar Fotos
         </button>
         {!showReview && !done && (
-          <button onClick={() => setShowReview(true)} className="mt-6 text-xs uppercase tracking-widest text-gray-400 hover:text-black transition-colors">
+          <button onClick={() => setShowReview(true)} className="mt-6 text-xs uppercase tracking-widest text-gray-400 hover:text-black transition-colors cursor-pointer">
             Avaliar meu trabalho
           </button>
         )}
@@ -94,7 +80,7 @@ export default function DeliveryApp({
       {showReview && (
         <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowReview(false)}>
           <div className="bg-white max-w-md w-full p-8 md:p-10 shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setShowReview(false)} className="absolute top-3 right-4 text-2xl text-gray-400 hover:text-black" aria-label="Fechar">&times;</button>
+            <button onClick={() => setShowReview(false)} className="absolute top-3 right-4 text-2xl text-gray-400 hover:text-black cursor-pointer" aria-label="Fechar">&times;</button>
 
             {done ? (
               <div className="text-center py-6">
@@ -109,7 +95,7 @@ export default function DeliveryApp({
 
                 <div className="flex justify-center gap-1" onMouseLeave={() => setHover(0)}>
                   {[1, 2, 3, 4, 5].map((n) => (
-                    <button key={n} type="button" onMouseEnter={() => setHover(n)} onClick={() => setRating(n)} aria-label={`${n} estrelas`}>
+                    <button key={n} type="button" onMouseEnter={() => setHover(n)} onClick={() => setRating(n)} aria-label={`${n} estrelas`} className="cursor-pointer">
                       <Star filled={n <= (hover || rating)} className="w-9 h-9 text-amber-400 transition-transform hover:scale-110" />
                     </button>
                   ))}
@@ -135,7 +121,7 @@ export default function DeliveryApp({
                 <input type="text" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} className="hidden" aria-hidden="true" />
 
                 {error && <p className="text-red-500 text-xs font-bold uppercase tracking-widest">{error}</p>}
-                <button type="submit" disabled={sending} className="bg-black text-white p-4 font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors disabled:opacity-50">
+                <button type="submit" disabled={sending} className="bg-black text-white p-4 font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer">
                   {sending ? 'Enviando...' : 'Enviar Avaliação'}
                 </button>
               </form>

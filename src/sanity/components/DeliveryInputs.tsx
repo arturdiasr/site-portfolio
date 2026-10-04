@@ -5,7 +5,6 @@ import { useFormValue, type StringInputProps } from 'sanity'
 export function DeliveryMessageInput(_props: StringInputProps) {
   const title = useFormValue(['title']) as string | undefined
   const slug = useFormValue(['slug']) as { current?: string } | undefined
-  const days = 14 // validade fixa, igual à da página de entrega
   const [copied, setCopied] = useState(false)
 
   if (!slug?.current) {
@@ -20,8 +19,6 @@ Suas fotos finais estão prontas! 🎉
 
 🔗 Baixe aqui: ${link}
 
-⏳ O link fica disponível por ${days} dias, então faça o download com calma, mas não deixe passar do prazo.
-
 Espero que você ame o resultado!`
 
   const copy = async () => {
@@ -32,7 +29,7 @@ Espero que você ame o resultado!`
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <textarea readOnly value={message} rows={11} style={{ padding: 10, border: '1px solid #ccc', borderRadius: 4, fontSize: 13, fontFamily: 'inherit' }} />
+      <textarea readOnly value={message} rows={9} style={{ padding: 10, border: '1px solid #ccc', borderRadius: 4, fontSize: 13, fontFamily: 'inherit' }} />
       <button
         type="button"
         onClick={copy}
