@@ -24,12 +24,20 @@ export default function DeliveryApp({
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const handleDownload = () => {
     if (!downloadUrl) return;
     window.open(downloadUrl, '_blank', 'noopener,noreferrer');
     // Após iniciar o download, convida o cliente a avaliar
     setTimeout(() => setShowReview(true), 1200);
+  };
+
+  const handleCopyLink = async () => {
+    const target = downloadUrl || window.location.href;
+    await navigator.clipboard.writeText(target);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 3000);
   };
 
   const submitReview = async (e: React.FormEvent) => {
@@ -69,6 +77,24 @@ export default function DeliveryApp({
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" /></svg>
           Baixar Fotos
+        </button>
+
+        <button
+          type="button"
+          onClick={handleCopyLink}
+          className="mt-3 w-full border border-gray-200 text-gray-700 p-3.5 text-xs font-bold uppercase tracking-widest hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+        >
+          {copiedLink ? (
+            <>
+              <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+              <span className="text-green-600">Link Copiado!</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              Copiar Link para Download
+            </>
+          )}
         </button>
         {!showReview && !done && (
           <button onClick={() => setShowReview(true)} className="mt-6 text-xs uppercase tracking-widest text-gray-400 hover:text-black transition-colors cursor-pointer">

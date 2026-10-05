@@ -82,10 +82,18 @@ Como escolher suas fotos:
 
 Pronto! Eu recebo a sua seleção e começo a edição das fotos escolhidas.`
 
+  const [copiedLink, setCopiedLink] = useState(false)
+
   const copy = async () => {
     await navigator.clipboard.writeText(message)
     setCopied(true)
     setTimeout(() => setCopied(false), 3000)
+  }
+
+  const copyLink = async () => {
+    await navigator.clipboard.writeText(link)
+    setCopiedLink(true)
+    setTimeout(() => setCopiedLink(false), 3000)
   }
 
   return (
@@ -96,13 +104,22 @@ Pronto! Eu recebo a sua seleção e começo a edição das fotos escolhidas.`
         rows={16}
         style={{ padding: 10, border: '1px solid #ccc', borderRadius: 4, fontSize: 13, fontFamily: 'inherit' }}
       />
-      <button
-        type="button"
-        onClick={copy}
-        style={{ ...btn, background: copied ? '#22c55e' : '#25D366', color: '#fff', border: 'none', padding: '12px 14px' }}
-      >
-        {copied ? '✓ Mensagem copiada!' : '📋 Copiar mensagem para WhatsApp'}
-      </button>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={copy}
+          style={{ ...btn, flex: 1, minWidth: 220, background: copied ? '#22c55e' : '#25D366', color: '#fff', border: 'none', padding: '12px 14px' }}
+        >
+          {copied ? '✓ Mensagem copiada!' : '📋 Copiar mensagem para WhatsApp'}
+        </button>
+        <button
+          type="button"
+          onClick={copyLink}
+          style={{ ...btn, background: copiedLink ? '#22c55e' : '#111827', color: '#fff', border: 'none', padding: '12px 16px' }}
+        >
+          {copiedLink ? '✓ Link copiado!' : '🔗 Copiar link da galeria'}
+        </button>
+      </div>
     </div>
   )
 }
