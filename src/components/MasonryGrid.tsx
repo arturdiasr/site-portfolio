@@ -1,28 +1,38 @@
 'use client';
 
-import Masonry from 'react-masonry-css';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
-// Um grid Masonry inteligente que lê os itens da esquerda para a direita
-// e os distribui nas colunas para que a leitura visual fique na ordem correta,
-// ao contrário do CSS columns nativo que empilha 1, 2, 3 na mesma coluna vertical.
 export default function MasonryGrid({ children, cols }: { children: React.ReactNode, cols?: any }) {
-  const breakpointColumnsObj = cols || {
-    default: 3,
-    1536: 3, // 2xl
-    1024: 3, // lg
-    768: 2,  // md
-    640: 1,  // sm
-    500: 1   // mobile
-  };
+  const [currentCols, setCurrentCols] = useState(3);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const updateCols = () => {
+      if (window.innerWidth < 640) setCurrentCols(1);
+      else if (window.innerWidth < 1024) setCurrentCols(2);
+      else setCurrentCols(3);
+    };
+    updateCols();
+    window.addEventListener('resize', updateCols);
+    return () => window.removeEventListener('resize', updateCols);
+  }, []);
+
+  const renderCols = mounted ? currentCols : 3;
+  const childArray = React.Children.toArray(children);
+  const columns: React.ReactNode[][] = Array.from({ length: renderCols }, () => []);
+
+  childArray.forEach((child, idx) => {
+    columns[idx % renderCols].push(child);
+  });
 
   return (
-    <Masonry
-      breakpointCols={breakpointColumnsObj}
-      className="flex w-auto -ml-6"
-      columnClassName="pl-6 bg-clip-padding"
-    >
-      {children}
-    </Masonry>
+    <div className={`grid gap-6 w-full items-start transition-all ${renderCols === 1 ? 'grid-cols-1' : renderCols === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+      {columns.map((col, i) => (
+        <div key={i} className="flex flex-col gap-6 w-full min-w-0">
+          {col}
+        </div>
+      ))}
+    </div>
   );
 }
