@@ -33,14 +33,15 @@ export default function LatestWorksCarousel({ galleries }: { galleries: Gallery[
 
   return (
     <div className="w-full mt-24 mb-0">
-      <div className="flex items-center justify-between mb-8">
+      <div className="relative mb-8 text-center">
         <h2 className="text-3xl md:text-4xl font-extrabold tracking-widest uppercase">Últimos Trabalhos</h2>
         
         {/* Setas de navegação desktop */}
-        <div className="hidden md:flex gap-4">
+        <div className="hidden md:flex gap-4 absolute right-0 top-1/2 -translate-y-1/2">
           <button 
             onClick={scrollLeft}
             className="p-3 border border-gray-200 hover:border-black hover:bg-black hover:text-white transition-all cursor-pointer group"
+            aria-label="Anterior"
           >
             <svg className="w-5 h-5 text-black group-hover:text-white transition-colors" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="square" strokeLinejoin="miter" d="M15 19l-7-7 7-7" />
@@ -49,6 +50,7 @@ export default function LatestWorksCarousel({ galleries }: { galleries: Gallery[
           <button 
             onClick={scrollRight}
             className="p-3 border border-gray-200 hover:border-black hover:bg-black hover:text-white transition-all cursor-pointer group"
+            aria-label="Próximo"
           >
             <svg className="w-5 h-5 text-black group-hover:text-white transition-colors" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="square" strokeLinejoin="miter" d="M9 5l7 7-7 7" />
