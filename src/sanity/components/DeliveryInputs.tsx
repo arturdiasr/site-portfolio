@@ -20,7 +20,8 @@ Suas fotos finais estão prontas! 🎉
 
 🔗 Baixe aqui: ${link}
 
-Espero que você goste do resultado!`
+Espero que você goste do resultado!
+O link ficará disponível para download por 7 dias.`
 
   const copyMessage = async () => {
     await navigator.clipboard.writeText(message)
@@ -36,7 +37,7 @@ Espero que você goste do resultado!`
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <textarea readOnly value={message} rows={9} style={{ padding: 10, border: '1px solid #ccc', borderRadius: 4, fontSize: 13, fontFamily: 'inherit' }} />
+      <textarea readOnly value={message} rows={10} style={{ padding: 10, border: '1px solid #ccc', borderRadius: 4, fontSize: 13, fontFamily: 'inherit' }} />
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button
           type="button"
