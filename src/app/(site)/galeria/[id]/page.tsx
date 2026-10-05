@@ -2,7 +2,7 @@ import { client } from "@/sanity/lib/client";
 import { urlForImage } from "@/sanity/lib/image";
 import { notFound } from "next/navigation";
 import LightboxGallery from "@/components/LightboxGallery";
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 
 export const revalidate = 0;
 

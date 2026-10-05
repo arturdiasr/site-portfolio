@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from "next/link";
+import { Link } from 'next-view-transitions';
 import Image from "next/image";
 import VideoCard from "@/components/VideoCard";
 import { urlForImage } from "@/sanity/lib/image";
@@ -50,11 +50,12 @@ export default function HomeMasonry({ items }: { items: any[] }) {
     <div className={`grid gap-6 w-full items-start transition-all ${renderCols === 1 ? 'grid-cols-1' : renderCols === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
       {columns.map((col, i) => (
         <div key={i} className="flex flex-col gap-6 w-full min-w-0">
-          {col.items.map(item => {
+          {col.items.map((item, itemIdx) => {
             // LÓGICA PARA CATEGORIAS
             const isLandscape = item.categoryAspect && item.categoryAspect > 1.1;
             const aspectClass = isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
             const targetHref = item.isMockVideoCategory ? '/videos' : `/categoria/${item._id}`;
+            const isTopRow = itemIdx === 0;
 
             return (
               <motion.div
@@ -65,13 +66,14 @@ export default function HomeMasonry({ items }: { items: any[] }) {
                 transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
               >
                 <Link data-cursor="VER" href={targetHref} className="group relative w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all">
-                  <div className={`w-full relative ${aspectClass}`}>
+                  <div className={`w-full relative ${aspectClass}`} style={{ viewTransitionName: `category-cover-${item._id}` }}>
                     {item.categoryCover ? (
                       <div className="absolute inset-0 w-full h-full">
                         <Image 
                           src={urlForImage(item.categoryCover).url()} 
                           alt={item.title}
                           fill
+                          priority={isTopRow}
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           className="object-cover transition-transform duration-1000 group-hover:scale-105"
                         />

@@ -24,34 +24,51 @@ function getYouTubeId(url?: string) {
 export default function VideoCard({ video, aspectClass }: { video: VideoItem, aspectClass: string }) {
   const [isHovered, setIsHovered] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const nativeVideoRef = useRef<HTMLVideoElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(cardRef, { amount: 0.5 });
-  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    setIsMounted(true);
   }, []);
 
-  const shouldPlay = isHovered || (isMobile && isInView);
-
-  useEffect(() => {
-    if (shouldPlay && nativeVideoRef.current) {
-      nativeVideoRef.current.play().catch(() => {});
-    } else if (!shouldPlay && nativeVideoRef.current) {
-      nativeVideoRef.current.pause();
-    }
-  }, [shouldPlay]);
-
-  const handleMouseEnter = () => setIsHovered(true);
-  const handleMouseLeave = () => setIsHovered(false);
-
+  const isMobile = isMounted && window.innerWidth < 768;
   const isNative = video.videoType === 'Arquivo Nativo (Upload)';
   const isYouTube = video.videoType === 'Link do YouTube';
   const youtubeId = isYouTube ? getYouTubeId(video.youtubeUrl) : null;
+
+  // No mobile, se for nativo e estiver na tela, ele toca. 
+  // No desktop, não toca sozinho, pois faremos o "scrubbing" com o mouse.
+  const shouldAutoplayMobile = isMobile && isInView && isNative;
+
+  useEffect(() => {
+    if (shouldAutoplayMobile && nativeVideoRef.current) {
+      nativeVideoRef.current.play().catch(() => {});
+    } else if (isMobile && !shouldAutoplayMobile && nativeVideoRef.current) {
+      nativeVideoRef.current.pause();
+    }
+  }, [shouldAutoplayMobile, isMobile]);
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    // Para vídeos nativos no desktop, nós vamos fazer o scrubbing, não precisa dar play.
+  };
+  
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isNative || !nativeVideoRef.current || isMobile) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(1, x / rect.width));
+    const duration = nativeVideoRef.current.duration;
+    if (duration > 0) {
+      nativeVideoRef.current.currentTime = percentage * duration;
+    }
+  };
 
   return (
     <>
@@ -62,11 +79,12 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
         className="group relative w-full h-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onMouseMove={handleMouseMove}
         onClick={() => setIsOpen(true)}
       >
         <div className={`w-full relative ${aspectClass}`}>
           {/* Capa estática */}
-          <div className={`absolute inset-0 w-full h-full transition-opacity duration-500 z-10 ${shouldPlay ? 'opacity-0' : 'opacity-100'}`}>
+          <div className={`absolute inset-0 w-full h-full transition-opacity duration-500 z-10 ${isHovered || shouldAutoplayMobile ? 'opacity-0' : 'opacity-100'}`}>
             <Image 
               src={video.coverImage} 
               alt={video.title}
@@ -76,7 +94,7 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
             />
           </div>
 
-          {/* Player no Fundo (Rodando mudo ao passar o mouse) */}
+          {/* Player no Fundo (Rodando mudo ao passar o mouse ou fazer o scrubbing) */}
           <div className="absolute inset-0 w-full h-full z-0 overflow-hidden bg-black pointer-events-none">
             {isNative && video.videoFileUrl && (
               <video 
@@ -88,15 +106,7 @@ export default function VideoCard({ video, aspectClass }: { video: VideoItem, as
                 playsInline
               />
             )}
-            {isYouTube && youtubeId && shouldPlay && (
-              <div className="w-[150%] h-[150%] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <iframe 
-                  src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${youtubeId}`}
-                  allow="autoplay"
-                  className="w-full h-full border-0 pointer-events-none"
-                />
-              </div>
-            )}
+            {/* Removido o Iframe do YouTube aqui (Facade Pattern) para não destruir a performance da rede e bateria. */}
           </div>
         </div>
 

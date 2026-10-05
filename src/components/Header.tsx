@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from 'next-view-transitions';
 import { client } from "@/sanity/lib/client";
 import { RevealFade, RevealNav } from "./HeaderAnimations";
 
