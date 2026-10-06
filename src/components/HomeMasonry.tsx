@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'next-view-transitions';
-import Image from "next/image";
 import VideoCard from "@/components/VideoCard";
 import { urlForImage } from "@/sanity/lib/image";
 import { motion } from "framer-motion";
+import RotatingCardImage from "@/components/RotatingCardImage";
 
 export default function HomeMasonry({ items }: { items: any[] }) {
   const [cols, setCols] = useState(3);
@@ -67,20 +67,13 @@ export default function HomeMasonry({ items }: { items: any[] }) {
               >
                 <Link data-cursor="VER" href={targetHref} className="group relative w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all">
                   <div className={`w-full relative ${aspectClass}`} style={{ viewTransitionName: `category-cover-${item._id}` }}>
-                    {item.categoryCover ? (
-                      <div className="absolute inset-0 w-full h-full">
-                        <Image 
-                          src={urlForImage(item.categoryCover).url()} 
-                          alt={item.title}
-                          fill
-                          priority={isTopRow}
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          className="object-cover transition-transform duration-1000 group-hover:scale-105"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-full h-full bg-gray-200 flex items-center justify-center text-xs text-gray-400">Sem foto de capa</div>
-                    )}
+                    <RotatingCardImage
+                      images={item.rotationImages && item.rotationImages.length > 0 ? item.rotationImages : (item.categoryCover ? [urlForImage(item.categoryCover).url()] : [])}
+                      alt={item.title}
+                      priority={isTopRow}
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      indexOffset={itemIdx}
+                    />
                   </div>
 
                   <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center pointer-events-none">

@@ -6,6 +6,43 @@ import TestimonialsSection from "@/components/TestimonialsSection";
 
 export const revalidate = 0;
 
+function extractUniqueRotationUrls(
+  coverPhoto: any,
+  favoritePhotos: any[] = [],
+  fallbackPhotos: any[] = []
+): string[] {
+  const cover = coverPhoto ? [coverPhoto] : [];
+  const favs = (favoritePhotos || []).filter(Boolean);
+  
+  // Se houver fotos favoritas selecionadas pelo usuário, usamos apenas a capa + favoritas.
+  // Caso contrário, usamos fallback para que o site já ganhe dinamismo imediato!
+  const candidatePool = favs.length > 0 ? favs : (fallbackPhotos || []).filter(Boolean);
+  
+  const allList = [...cover, ...candidatePool];
+  const seenRefs = new Set<string>();
+  const uniqueUrls: string[] = [];
+  
+  for (const item of allList) {
+    if (!item) continue;
+    const ref = item.asset?._ref || item._key;
+    if (ref && seenRefs.has(ref)) continue;
+    if (ref) seenRefs.add(ref);
+    
+    try {
+      const url = urlForImage(item).url();
+      if (url && !uniqueUrls.includes(url)) {
+        uniqueUrls.push(url);
+      }
+    } catch {
+      // Ignora item caso falhe na geração da URL
+    }
+    
+    if (uniqueUrls.length >= 6) break; // Capa + até 5 fotos favoritas
+  }
+  
+  return uniqueUrls;
+}
+
 export default async function Portfolio() {
   // Busca categorias
   const catQuery = `*[_type == "category"] | order(order asc, _createdAt asc) {
@@ -14,9 +51,38 @@ export default async function Portfolio() {
     title,
     order,
     "categoryCover": coalesce(images[isCover == true][0], coverImage),
-    "categoryAspect": coalesce(images[isCover == true][0].asset->metadata.dimensions.aspectRatio, coverImage.asset->metadata.dimensions.aspectRatio)
+    "categoryAspect": coalesce(images[isCover == true][0].asset->metadata.dimensions.aspectRatio, coverImage.asset->metadata.dimensions.aspectRatio),
+    "favoriteImages": favoriteImages[],
+    "markedFavorites": images[isFavorite == true],
+    "galleryFavorites": *[_type == "gallery" && category._ref == ^._id].images[isFavorite == true][0...8],
+    "galleryCovers": *[_type == "gallery" && category._ref == ^._id]{
+      "cover": coalesce(images[isCover == true][0], coverImage)
+    }.cover[0...5],
+    "fallbackImages": images[0...6]
   }`;
-  const categories = await client.fetch(catQuery);
+  const rawCategories = await client.fetch(catQuery);
+
+  const categories = rawCategories.map((cat: any) => {
+    const favCandidates = [
+      ...(cat.favoriteImages || []),
+      ...(cat.markedFavorites || []),
+      ...(cat.galleryFavorites || [])
+    ];
+    const fallbackCandidates = [
+      ...(cat.galleryCovers || []),
+      ...(cat.fallbackImages || [])
+    ];
+    const rotationImages = extractUniqueRotationUrls(
+      cat.categoryCover,
+      favCandidates,
+      fallbackCandidates
+    );
+
+    return {
+      ...cat,
+      rotationImages
+    };
+  });
 
   // Busca vídeos
   const vidQuery = `*[_type == "featuredVideo"] | order(order asc, _createdAt asc) {
@@ -31,12 +97,14 @@ export default async function Portfolio() {
 
   // Cria um card de categoria "Vídeos" no final usando a capa do primeiro vídeo
   if (videos.length > 0) {
+    const videoCoverUrl = videos[0].videoCover ? urlForImage(videos[0].videoCover).url() : '';
     items.push({
       _id: 'videos',
       _type: 'category',
       title: 'Vídeos',
       categoryCover: videos[0].videoCover,
       categoryAspect: videos[0].format === 'Horizontal (ex: YouTube/Cinema)' ? 1.5 : 0.8,
+      rotationImages: videoCoverUrl ? [videoCoverUrl] : [],
       isMockVideoCategory: true
     });
   }
@@ -46,7 +114,10 @@ export default async function Portfolio() {
     _id,
     title,
     workDate,
-    "coverImage": coalesce(images[isCover == true][0], coverImage)
+    "coverImage": coalesce(images[isCover == true][0], coverImage),
+    "favoriteImages": favoriteImages[],
+    "markedFavorites": images[isFavorite == true][0...8],
+    "fallbackImages": images[0...6]
   }`;
   
   const latestGalleries = await client.fetch(latestQuery);
@@ -60,12 +131,23 @@ export default async function Portfolio() {
         formattedDate = month.charAt(0).toUpperCase() + month.slice(1) + " " + date.getFullYear();
       }
     }
+
+    const favCandidates = [
+      ...(gal.favoriteImages || []),
+      ...(gal.markedFavorites || [])
+    ];
+    const rotationImages = extractUniqueRotationUrls(
+      gal.coverImage,
+      favCandidates,
+      gal.fallbackImages || []
+    );
     
     return {
       _id: gal._id,
       title: gal.title,
       workDate: formattedDate,
-      coverImageUrl: gal.coverImage ? urlForImage(gal.coverImage).url() : ''
+      coverImageUrl: gal.coverImage ? urlForImage(gal.coverImage).url() : '',
+      rotationImages
     };
   });
 

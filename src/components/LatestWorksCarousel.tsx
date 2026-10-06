@@ -2,14 +2,15 @@
 
 import { useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { motion } from "framer-motion";
+import RotatingCardImage from "@/components/RotatingCardImage";
 
 type Gallery = {
   _id: string;
   title: string;
   workDate?: string;
   coverImageUrl: string;
+  rotationImages?: string[];
 };
 
 export default function LatestWorksCarousel({ galleries }: { galleries: Gallery[] }) {
@@ -85,21 +86,14 @@ export default function LatestWorksCarousel({ galleries }: { galleries: Gallery[
               </h3>
             </div>
             
-            {/* Foto de capa */}
+            {/* Foto de capa com rotação suave */}
             <div className="relative w-full aspect-[4/5] bg-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
-              {gallery.coverImageUrl ? (
-                <div className="absolute inset-0 w-full h-full">
-                  <Image 
-                    src={gallery.coverImageUrl} 
-                    alt={gallery.title}
-                    fill
-                    sizes="(max-width: 640px) 75vw, (max-width: 768px) 45vw, 30vw"
-                    className="object-cover transition-transform duration-1000 group-hover:scale-105"
-                  />
-                </div>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">Sem capa</div>
-              )}
+              <RotatingCardImage
+                images={gallery.rotationImages && gallery.rotationImages.length > 0 ? gallery.rotationImages : (gallery.coverImageUrl ? [gallery.coverImageUrl] : [])}
+                alt={gallery.title}
+                sizes="(max-width: 640px) 75vw, (max-width: 768px) 45vw, 30vw"
+                indexOffset={index}
+              />
             </div>
             
             {/* Data discreta abaixo da foto */}

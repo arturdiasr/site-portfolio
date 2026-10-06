@@ -26,6 +26,14 @@ export const categoryType = defineType({
       options: { hotspot: true }
     }),
     defineField({
+      name: 'favoriteImages',
+      title: 'Fotos Favoritas / Rotativas (Opcional)',
+      description: 'Selecione ou suba fotos extras para rotacionar no card desta categoria na página principal (recomenda-se até 5 fotos).',
+      type: 'array',
+      options: { layout: 'grid' },
+      of: [{ type: 'image', options: { hotspot: true } }]
+    }),
+    defineField({
       name: 'images',
       title: 'Fotos Soltas da Categoria',
       description: 'Arraste fotos soltas que pertencem a esta categoria (sem precisar criar um álbum/evento específico para elas).',
@@ -39,6 +47,13 @@ export const categoryType = defineType({
             {
               name: 'isCover',
               title: 'Tornar essa foto a capa da categoria',
+              type: 'boolean',
+              initialValue: false,
+            },
+            {
+              name: 'isFavorite',
+              title: 'Foto Favorita (aparece na rotação do card na Home)',
+              description: 'Marque para incluir esta foto no rodízio do card desta categoria na página principal.',
               type: 'boolean',
               initialValue: false,
             },

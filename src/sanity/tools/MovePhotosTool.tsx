@@ -56,6 +56,7 @@ export function MovePhotosTool() {
       images[] {
         _key,
         isCover,
+        isFavorite,
         asset,
         "url": asset->url + "?w=200&h=200&fit=crop&auto=format&q=60",
         "originalFilename": asset->originalFilename
@@ -132,6 +133,62 @@ export function MovePhotosTool() {
       setSuccess("Capa da categoria principal definida com sucesso!");
     } catch (e) {
       alert("Erro ao definir capa da categoria.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleToggleFavorite = async (img: any) => {
+    setLoading(true);
+    setSuccess('');
+    try {
+      const fullDoc = await client.getDocument(selectedSource);
+      if (!fullDoc || !fullDoc.images) return;
+
+      const currentFav = !!img.isFavorite;
+      const updatedImages = (fullDoc.images as any[]).map(i => {
+        if (i._key === img._key) {
+          return { ...i, isFavorite: !currentFav };
+        }
+        return i;
+      });
+
+      await applyPatch(selectedSource, p => p.set({ 
+        images: updatedImages
+      }));
+      
+      setImages(prev => prev.map(i => i._key === img._key ? { ...i, isFavorite: !currentFav } : i));
+      setSuccess(!currentFav ? "Foto adicionada aos favoritos da Home!" : "Foto removida dos favoritos.");
+    } catch (e) {
+      alert("Erro ao atualizar favorita.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleBatchSetFavorites = async (makeFavorite: boolean) => {
+    if (selectedImages.size === 0) return;
+    setLoading(true);
+    setSuccess('');
+    try {
+      const fullDoc = await client.getDocument(selectedSource);
+      if (!fullDoc || !fullDoc.images) return;
+
+      const updatedImages = (fullDoc.images as any[]).map(i => {
+        if (selectedImages.has(i._key)) {
+          return { ...i, isFavorite: makeFavorite };
+        }
+        return i;
+      });
+
+      await applyPatch(selectedSource, p => p.set({ 
+        images: updatedImages
+      }));
+
+      setImages(prev => prev.map(i => selectedImages.has(i._key) ? { ...i, isFavorite: makeFavorite } : i));
+      setSuccess(makeFavorite ? `${selectedImages.size} fotos marcadas como favoritas da Home!` : `Favoritas desmarcadas com sucesso!`);
+    } catch (e) {
+      alert("Erro ao atualizar fotos em lote.");
     } finally {
       setLoading(false);
     }
@@ -516,6 +573,25 @@ export function MovePhotosTool() {
                     Excluir Selecionadas
                   </button>
                 )}
+                {selectedImages.size > 0 && (
+                  <>
+                    <button 
+                      style={{ padding: '6px 12px', background: '#fef3c7', border: '1px solid #d97706', color: '#92400e', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                      onClick={() => handleBatchSetFavorites(true)}
+                      disabled={loading}
+                      title="Fotos marcadas alternam na capa da página principal"
+                    >
+                      ★ Marcar Favoritas ({selectedImages.size})
+                    </button>
+                    <button 
+                      style={{ padding: '6px 12px', background: 'transparent', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer' }}
+                      onClick={() => handleBatchSetFavorites(false)}
+                      disabled={loading}
+                    >
+                      Desmarcar Favoritas ({selectedImages.size})
+                    </button>
+                  </>
+                )}
                 <button 
                   style={{ padding: '6px 12px', background: 'transparent', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer' }}
                   onClick={toggleAll}
@@ -593,6 +669,12 @@ export function MovePhotosTool() {
                         </svg>
                       </div>
 
+                      {img.isFavorite && (
+                        <div style={{ position: 'absolute', top: '5px', left: '28px', background: '#d97706', color: 'white', fontSize: '9px', fontWeight: 'bold', padding: '1px 5px', borderRadius: '3px', zIndex: 2 }}>
+                          ★ FAVORITA
+                        </div>
+                      )}
+
                       {isCover && (
                         <div style={{ position: 'absolute', bottom: '0', left: '0', width: '100%', background: 'rgba(34, 118, 252, 0.9)', color: 'white', fontSize: '10px', textAlign: 'center', padding: '4px 0', fontWeight: 'bold' }}>
                           FOTO DE CAPA
@@ -619,6 +701,22 @@ export function MovePhotosTool() {
                           }}
                         >
                           {isCover ? "★ Capa Desta Galeria" : "Capa Desta Galeria"}
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleToggleFavorite(img); }}
+                          disabled={loading}
+                          style={{
+                            fontSize: '11px',
+                            padding: '4px',
+                            borderRadius: '4px',
+                            border: img.isFavorite ? '1px solid #d97706' : '1px solid #ccc',
+                            background: img.isFavorite ? '#fef3c7' : 'transparent',
+                            color: img.isFavorite ? '#92400e' : '#666',
+                            cursor: 'pointer',
+                            fontWeight: img.isFavorite ? 'bold' : 'normal'
+                          }}
+                        >
+                          {img.isFavorite ? "★ Favorita da Home" : "☆ Marcar como Favorita"}
                         </button>
                         {selectedSourceType === 'gallery' && (
                           <button
