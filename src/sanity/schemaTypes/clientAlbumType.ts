@@ -1,5 +1,6 @@
 import {defineField, defineType} from 'sanity'
 import {PasswordInput, WhatsappMessageInput} from '../components/ClientAlbumInputs'
+import {ClientSelectionsViewer} from '../components/ClientSelectionsViewer'
 
 export const clientAlbumType = defineType({
   name: 'clientAlbum',
@@ -27,6 +28,20 @@ export const clientAlbumType = defineType({
       type: 'string',
       components: { input: PasswordInput },
       validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: 'requireEmail',
+      title: 'Exigir e-mail do cliente para acessar',
+      description: 'Se ativado (padrão para novos ensaios), o cliente precisará informar seu e-mail junto com a senha. Desative caso deseje liberar o acesso apenas com a senha.',
+      type: 'boolean',
+      initialValue: true,
+    }),
+    defineField({
+      name: 'liveSelections',
+      title: 'Acompanhamento da Seleção de Fotos (Tempo Real)',
+      description: 'Veja as fotos favoritadas e a lista para o Lightroom a qualquer momento.',
+      type: 'string',
+      components: { input: ClientSelectionsViewer },
     }),
     defineField({
       name: 'whatsappMessage',

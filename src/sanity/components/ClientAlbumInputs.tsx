@@ -55,6 +55,9 @@ export function WhatsappMessageInput(_props: StringInputProps) {
   const password = useFormValue(['password']) as string | undefined
   const images = useFormValue(['images']) as unknown[] | undefined
   const [copied, setCopied] = useState(false)
+  const [copiedLink, setCopiedLink] = useState(false)
+  const [copiedName, setCopiedName] = useState(false)
+  const [copiedPassword, setCopiedPassword] = useState(false)
 
   if (!slug?.current || !password || !images || images.length === 0) {
     return (
@@ -64,25 +67,32 @@ export function WhatsappMessageInput(_props: StringInputProps) {
     )
   }
 
-  const link = `${window.location.origin}/cliente/${slug.current}`
+  const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/cliente/${slug.current}`
   const firstName = title?.trim().split(/\s+/)[0]
+  const galleryName = title?.trim() || ''
+
   const message = `Olá${firstName ? `, ${firstName}` : ''}! 📸
 
 Sua galeria de fotos está pronta! 🎉
 
-🔗 Acesse aqui: ${link}
-🔑 Senha: ${password}
+📁 Nome da Galeria:
+${galleryName}
+
+🔑 Senha:
+${password}
+
+🔗 Link de acesso:
+${link}
 
 Como escolher suas fotos:
-1️⃣ Entre no link e digite a senha.
-2️⃣ Clique em uma foto para ampliar e analisar com calma.
-3️⃣ Toque no coração ❤️ no canto da foto (ou dentro da foto ampliada) para favoritar.
-4️⃣ Acompanhe suas escolhidas na aba lateral.
-5️⃣ Quando terminar, clique em "Enviar Lista de Fotos".
+1️⃣ Entre no link (ou acesse a aba Área do Cliente em nosso site).
+2️⃣ Digite a senha e informe seu e-mail para acompanhar suas fotos.
+3️⃣ Clique em uma foto para ampliar e analisar com calma.
+4️⃣ Toque no coração ❤️ no canto da foto (ou dentro da foto ampliada) para favoritar.
+5️⃣ Acompanhe suas escolhidas na aba lateral.
+6️⃣ Quando terminar, clique em "Enviar Lista de Fotos".
 
 Pronto! Eu recebo a sua seleção e começo a edição das fotos escolhidas.`
-
-  const [copiedLink, setCopiedLink] = useState(false)
 
   const copy = async () => {
     await navigator.clipboard.writeText(message)
@@ -96,28 +106,54 @@ Pronto! Eu recebo a sua seleção e começo a edição das fotos escolhidas.`
     setTimeout(() => setCopiedLink(false), 3000)
   }
 
+  const copyName = async () => {
+    await navigator.clipboard.writeText(galleryName)
+    setCopiedName(true)
+    setTimeout(() => setCopiedName(false), 3000)
+  }
+
+  const copyPassword = async () => {
+    await navigator.clipboard.writeText(password)
+    setCopiedPassword(true)
+    setTimeout(() => setCopiedPassword(false), 3000)
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <textarea
         readOnly
         value={message}
-        rows={16}
+        rows={18}
         style={{ padding: 10, border: '1px solid #ccc', borderRadius: 4, fontSize: 13, fontFamily: 'inherit' }}
       />
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button
           type="button"
           onClick={copy}
-          style={{ ...btn, flex: 1, minWidth: 220, background: copied ? '#22c55e' : '#25D366', color: '#fff', border: 'none', padding: '12px 14px' }}
+          style={{ ...btn, flex: 1, minWidth: 200, background: copied ? '#22c55e' : '#25D366', color: '#fff', border: 'none', padding: '12px 14px' }}
         >
           {copied ? '✓ Mensagem copiada!' : '📋 Copiar mensagem para WhatsApp'}
         </button>
         <button
           type="button"
-          onClick={copyLink}
-          style={{ ...btn, background: copiedLink ? '#22c55e' : '#111827', color: '#fff', border: 'none', padding: '12px 16px' }}
+          onClick={copyName}
+          style={{ ...btn, background: copiedName ? '#22c55e' : '#f3f4f6', color: '#111827', border: '1px solid #d1d5db', padding: '12px 14px' }}
         >
-          {copiedLink ? '✓ Link copiado!' : '🔗 Copiar link da galeria'}
+          {copiedName ? '✓ Nome copiado!' : '📁 Copiar apenas Nome'}
+        </button>
+        <button
+          type="button"
+          onClick={copyPassword}
+          style={{ ...btn, background: copiedPassword ? '#22c55e' : '#f3f4f6', color: '#111827', border: '1px solid #d1d5db', padding: '12px 14px' }}
+        >
+          {copiedPassword ? '✓ Senha copiada!' : '🔑 Copiar Senha'}
+        </button>
+        <button
+          type="button"
+          onClick={copyLink}
+          style={{ ...btn, background: copiedLink ? '#22c55e' : '#111827', color: '#fff', border: 'none', padding: '12px 14px' }}
+        >
+          {copiedLink ? '✓ Link copiado!' : '🔗 Copiar Link'}
         </button>
       </div>
     </div>

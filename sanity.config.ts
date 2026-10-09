@@ -18,6 +18,7 @@ export default defineConfig({
             S.documentTypeListItem('category').title('Categoria de Trabalho'),
             S.documentTypeListItem('gallery').title('Galeria'),
             S.documentTypeListItem('clientAlbum').title('Área do Cliente (Álbuns)'),
+            S.documentTypeListItem('clientSelection').title('Seleções dos Clientes (Favoritas)'),
             S.documentTypeListItem('delivery').title('Entrega de Fotos Finais'),
             S.documentTypeListItem('testimonial').title('Depoimentos de Clientes'),
             S.documentTypeListItem('featuredVideo').title('Vídeos (Página Inicial)'),

@@ -76,10 +76,23 @@ export default function HomeMasonry({ items }: { items: any[] }) {
                     />
                   </div>
 
-                  <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center pointer-events-none">
+                  {/* Desktop: Overlay central ao passar o mouse */}
+                  <div className="hidden md:flex absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 items-center justify-center pointer-events-none">
                     <div className="text-center w-full px-4">
                       <h2 className="text-black bg-white/95 px-6 py-3 text-xl font-bold tracking-widest uppercase shadow-xl inline-block">{item.title}</h2>
                     </div>
+                  </div>
+
+                  {/* Celular: Nome da categoria sempre visível na parte inferior do card */}
+                  <div className="md:hidden absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+                    <span className="bg-white/95 backdrop-blur-sm text-black px-3.5 py-2 text-xs font-extrabold tracking-widest uppercase shadow-lg border border-black/5">
+                      {item.title}
+                    </span>
+                    <span className="bg-black/60 text-white p-2 rounded-full shadow-lg backdrop-blur-sm">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
                   </div>
                 </Link>
               </motion.div>

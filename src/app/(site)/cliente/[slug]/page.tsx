@@ -12,6 +12,7 @@ export default async function ClientAlbumPage({ params }: { params: Promise<{ sl
     title,
     "slug": slug.current,
     password,
+    requireEmail,
     coverImage,
     "images": images[] {
       "url": asset->url,

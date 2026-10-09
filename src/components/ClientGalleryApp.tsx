@@ -9,6 +9,7 @@ type ClientAlbumData = {
   title: string;
   slug: string;
   password: string;
+  requireEmail?: boolean;
   coverImage: any;
   images: {
     url: string;
@@ -18,9 +19,16 @@ type ClientAlbumData = {
 };
 
 export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) {
+  // Não aplica exigência de e-mail para a galeria que já existia nem quando desativado
+  const isLegacyGallery = album.slug === 'paula-carvalho-sqn-304';
+  const requireEmail = !isLegacyGallery && album.requireEmail !== false;
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
+  const [emailInput, setEmailInput] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
   const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   
   // Lista de nomes de arquivos selecionados
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
@@ -39,17 +47,29 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
     
     // Verifica se já estava logado antes
     const authStatus = localStorage.getItem(`auth_${album.slug}`);
+    const savedEmail = localStorage.getItem(`client_email_${album.slug}`) || '';
+
     if (authStatus === 'true') {
-      setIsAuthenticated(true);
+      if (requireEmail && !savedEmail) {
+        setIsAuthenticated(false);
+      } else {
+        setIsAuthenticated(true);
+        setClientEmail(savedEmail);
+      }
     } else {
       const tempPwd = localStorage.getItem(`temp_pwd_${album.slug}`);
       if (tempPwd) {
         if (tempPwd === album.password) {
-          setIsAuthenticated(true);
-          localStorage.setItem(`auth_${album.slug}`, 'true');
+          if (!requireEmail) {
+            setIsAuthenticated(true);
+            localStorage.setItem(`auth_${album.slug}`, 'true');
+          } else {
+            setPasswordInput(tempPwd);
+          }
         } else {
           setPasswordInput(tempPwd);
           setError(true);
+          setErrorMessage('Senha Incorreta');
         }
         localStorage.removeItem(`temp_pwd_${album.slug}`);
       }
@@ -66,14 +86,39 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
         }
       } catch (e) {}
     }
-  }, [album.slug, album.password]);
+  }, [album.slug, album.password, requireEmail]);
 
-  // Salva seleções ao alterar
+  // Salva seleções ao alterar no localStorage
   useEffect(() => {
     if (isClient) {
       localStorage.setItem(`selections_${album.slug}`, JSON.stringify(selectedFiles));
     }
   }, [selectedFiles, album.slug, isClient]);
+
+  // Sincroniza seleções em tempo real com o Sanity para monitoramento no Studio
+  useEffect(() => {
+    if (!isClient || !isAuthenticated) return;
+
+    const timer = setTimeout(() => {
+      fetch('/api/client-selections', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          albumSlug: album.slug,
+          albumTitle: album.title,
+          clientEmail: clientEmail || (requireEmail ? '' : 'cliente-direto'),
+          selectedFiles: selectedFiles,
+          status: 'in_progress',
+        }),
+      }).catch((err) => {
+        console.warn('Erro ao sincronizar seleção em tempo real:', err);
+      });
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [selectedFiles, album.slug, album.title, clientEmail, isClient, isAuthenticated, requireEmail]);
 
   // Keyboard events for Lightbox
   useEffect(() => {
@@ -93,13 +138,28 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput === album.password) {
-      setIsAuthenticated(true);
-      localStorage.setItem(`auth_${album.slug}`, 'true');
-      setError(false);
-    } else {
+    if (passwordInput !== album.password) {
       setError(true);
+      setErrorMessage('Senha Incorreta');
+      return;
     }
+
+    if (requireEmail) {
+      const trimmedEmail = emailInput.trim().toLowerCase();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
+        setError(true);
+        setErrorMessage('Por favor, digite um e-mail válido');
+        return;
+      }
+      localStorage.setItem(`client_email_${album.slug}`, trimmedEmail);
+      setClientEmail(trimmedEmail);
+    }
+
+    setIsAuthenticated(true);
+    localStorage.setItem(`auth_${album.slug}`, 'true');
+    setError(false);
+    setErrorMessage('');
   };
 
   const toggleSelection = (filename: string) => {
@@ -134,12 +194,27 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
         },
         body: JSON.stringify({
           albumTitle: album.title,
+          albumSlug: album.slug,
+          clientEmail: clientEmail,
           selectedFiles: selectedFiles
         })
       });
       if (res.ok) {
         setShowToast(true);
         setTimeout(() => setShowToast(false), 5000);
+
+        // Atualiza status no Sanity para submitted
+        fetch('/api/client-selections', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            albumSlug: album.slug,
+            albumTitle: album.title,
+            clientEmail: clientEmail || (requireEmail ? '' : 'cliente-direto'),
+            selectedFiles: selectedFiles,
+            status: 'submitted',
+          }),
+        }).catch(() => {});
       } else {
         alert("Ocorreu um erro ao enviar as fotos. Verifique as configurações de email ou tente novamente.");
       }
@@ -169,17 +244,32 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
         )}
         <div className="relative z-10 bg-white p-10 md:p-14 max-w-md w-full shadow-2xl flex flex-col items-center text-center">
           <h1 className="text-2xl md:text-3xl font-bold uppercase tracking-widest mb-2">{album.title}</h1>
-          <p className="text-gray-500 mb-8 text-sm">Digite a senha para acessar suas fotos.</p>
+          <p className="text-gray-500 mb-8 text-sm">
+            {requireEmail 
+              ? 'Informe seu e-mail e a senha para acessar suas fotos.'
+              : 'Digite a senha para acessar suas fotos.'}
+          </p>
           
           <form onSubmit={handleLogin} className="w-full flex flex-col gap-4">
+            {requireEmail && (
+              <input 
+                type="email" 
+                placeholder="Seu e-mail"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                className="w-full p-4 border border-gray-200 text-center text-base focus:outline-none focus:border-black transition-colors"
+                required
+              />
+            )}
             <input 
               type="password" 
               placeholder="Senha de Acesso"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               className="w-full p-4 border border-gray-200 text-center text-lg tracking-widest focus:outline-none focus:border-black transition-colors"
+              required
             />
-            {error && <p className="text-red-500 text-xs uppercase font-bold tracking-widest">Senha Incorreta</p>}
+            {error && <p className="text-red-500 text-xs uppercase font-bold tracking-widest">{errorMessage || 'Senha Incorreta'}</p>}
             <button 
               type="submit"
               className="w-full bg-black text-white p-4 font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors"
@@ -207,7 +297,12 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
         className={`fixed top-0 right-0 h-full bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.1)] z-50 transition-transform duration-500 flex flex-col ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} w-80 md:w-96`}
       >
         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-          <h3 className="font-bold uppercase tracking-widest text-sm">Fotos Selecionadas ({selectedFiles.length})</h3>
+          <div>
+            <h3 className="font-bold uppercase tracking-widest text-sm">Fotos Selecionadas ({selectedFiles.length})</h3>
+            {clientEmail && (
+              <p className="text-[11px] text-gray-500 truncate mt-0.5">{clientEmail}</p>
+            )}
+          </div>
           <button onClick={handleMinimizeSidebar} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
