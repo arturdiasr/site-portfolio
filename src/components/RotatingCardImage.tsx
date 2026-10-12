@@ -29,19 +29,16 @@ export default function RotatingCardImage({
     );
   }
 
-  // Se houver apenas 1 imagem, renderiza estático de forma direta e leve
+  // Se houver apenas 1 imagem, renderiza estático com efeito blur-up
   if (images.length === 1) {
     return (
-      <div className="absolute inset-0 w-full h-full">
-        <Image
-          src={images[0]}
-          alt={alt}
-          fill
-          priority={priority}
-          sizes={sizes}
-          className={className}
-        />
-      </div>
+      <SingleCardImage
+        src={images[0]}
+        alt={alt}
+        priority={priority}
+        sizes={sizes}
+        className={className}
+      />
     );
   }
 
@@ -57,6 +54,38 @@ export default function RotatingCardImage({
   );
 }
 
+function SingleCardImage({
+  src,
+  alt,
+  priority,
+  sizes,
+  className,
+}: {
+  src: string;
+  alt: string;
+  priority?: boolean;
+  sizes?: string;
+  className?: string;
+}) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <div className="absolute inset-0 w-full h-full overflow-hidden bg-neutral-100">
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        priority={priority}
+        sizes={sizes}
+        onLoad={() => setLoaded(true)}
+        className={`${className} transition-all duration-700 ease-out ${
+          loaded ? 'blur-0 opacity-100' : 'blur-md opacity-70'
+        }`}
+      />
+    </div>
+  );
+}
+
 function RotatingCardCarousel({
   images,
   alt,
@@ -67,9 +96,21 @@ function RotatingCardCarousel({
 }: RotatingCardImageProps) {
   // Começa no 0 para SSR consistente
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [loadedImages, setLoadedImages] = useState<Record<number, boolean>>({});
   const [isHovered, setIsHovered] = useState(false);
   const isHoveredRef = useRef(isHovered);
   isHoveredRef.current = isHovered;
+
+  // Pré-carrega todas as imagens na memória para rotação instantânea e sem engasgos
+  useEffect(() => {
+    if (typeof window === 'undefined' || !images || images.length <= 1) return;
+    images.forEach((url) => {
+      if (url) {
+        const img = new window.Image();
+        img.src = url;
+      }
+    });
+  }, [images]);
 
   // Ao montar no cliente: sorteia a foto inicial para que cada visita traga uma foto diferente!
   useEffect(() => {
@@ -105,18 +146,21 @@ function RotatingCardCarousel({
 
   return (
     <div
-      className="absolute inset-0 w-full h-full"
+      className="absolute inset-0 w-full h-full overflow-hidden bg-neutral-100"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {images.map((imgUrl, idx) => {
         const isActive = idx === currentIndex;
+        const isLoaded = !!loadedImages[idx];
+
         return (
           <div
             key={imgUrl + idx}
             className={`absolute inset-0 w-full h-full transition-opacity duration-1200 ease-in-out ${
               isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
             }`}
+            style={{ willChange: 'opacity' }}
           >
             <Image
               src={imgUrl}
@@ -124,7 +168,10 @@ function RotatingCardCarousel({
               fill
               priority={priority && idx === 0}
               sizes={sizes}
-              className={className}
+              onLoad={() => setLoadedImages((prev) => ({ ...prev, [idx]: true }))}
+              className={`${className} transition-all duration-700 ease-out ${
+                isLoaded ? 'blur-0 opacity-100' : 'blur-md opacity-70'
+              }`}
             />
           </div>
         );
