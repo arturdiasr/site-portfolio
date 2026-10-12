@@ -13,15 +13,17 @@ export function DeliveryMessageInput(_props: StringInputProps) {
   }
 
   const firstName = title?.trim().split(/\s+/)[0]
-  const link = `${window.location.origin}/entrega/${slug.current}`
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const link = `${origin}/entrega/${slug.current}`
   const message = `Olá${firstName ? `, ${firstName}` : ''}! 📸
 
 Suas fotos finais estão prontas! 🎉
 
 🔗 Baixe aqui: ${link}
 
-Espero que você goste do resultado!
-O link ficará disponível para download por 7 dias.`
+Espero que você goste muito do resultado! O link ficará disponível para download por 7 dias.
+
+Se puder, avalie o que achou do trabalho (você pode avaliar na própria página de download ou me contar por aqui). A sua experiência ajuda muito o meu trabalho e faz toda a diferença para futuras parcerias! ✨`
 
   const copyMessage = async () => {
     await navigator.clipboard.writeText(message)
@@ -37,7 +39,7 @@ O link ficará disponível para download por 7 dias.`
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <textarea readOnly value={message} rows={10} style={{ padding: 10, border: '1px solid #ccc', borderRadius: 4, fontSize: 13, fontFamily: 'inherit' }} />
+      <textarea readOnly value={message} rows={14} style={{ padding: 10, border: '1px solid #ccc', borderRadius: 4, fontSize: 13, fontFamily: 'inherit' }} />
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button
           type="button"
