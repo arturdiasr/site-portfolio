@@ -2,7 +2,7 @@
 
 import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 
 interface HeaderNavProps {
   categories: Array<{ _id: string; title: string }>;

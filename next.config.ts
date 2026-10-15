@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['sanity', '@sanity/ui', 'framer-motion', 'motion'],
+  transpilePackages: ['sanity', '@sanity/ui', 'motion'],
   images: {
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'https',

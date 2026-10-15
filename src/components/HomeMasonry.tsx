@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'next-view-transitions';
 import VideoCard from "@/components/VideoCard";
 import { urlForImage } from "@/sanity/lib/image";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import RotatingCardImage from "@/components/RotatingCardImage";
 
 export default function HomeMasonry({ items }: { items: any[] }) {
