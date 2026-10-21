@@ -34,7 +34,9 @@ export async function POST(req: Request) {
     const emailKey = rawEmail ? rawEmail.replace(/[^a-z0-9_-]/g, '_') : 'cliente_direto';
     const docId = `selection_${safeSlug}_${emailKey}`;
 
-    const files = Array.isArray(selectedFiles) ? selectedFiles.map(String) : [];
+    const files = Array.isArray(selectedFiles)
+      ? selectedFiles.map((f) => String(f).replace(/\.[^/.]+$/, ''))
+      : [];
     const currentStatus = status === 'submitted' ? 'submitted' : 'in_progress';
     const now = new Date().toISOString();
 

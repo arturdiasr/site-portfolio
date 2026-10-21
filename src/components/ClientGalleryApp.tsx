@@ -18,6 +18,8 @@ type ClientAlbumData = {
   }[];
 };
 
+const stripExt = (name?: string) => String(name || '').replace(/\.[^/.]+$/, '');
+
 export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) {
   // Não aplica exigência de e-mail para a galeria que já existia nem quando desativado
   const isLegacyGallery = album.slug === 'paula-carvalho-sqn-304';
@@ -79,9 +81,10 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
     if (savedSelections) {
       try {
         const parsed = JSON.parse(savedSelections);
-        setSelectedFiles(parsed);
+        const normalized = Array.isArray(parsed) ? parsed.map((f: string) => stripExt(f)) : [];
+        setSelectedFiles(normalized);
         // Se já existiam itens selecionados e ele entra novamente, assume que já minimizou para não forçar a barra toda vez
-        if (parsed.length > 0) {
+        if (normalized.length > 0) {
           setHasMinimizedSidebar(true);
         }
       } catch (e) {}
@@ -162,7 +165,8 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
     setErrorMessage('');
   };
 
-  const toggleSelection = (filename: string) => {
+  const toggleSelection = (rawFilename: string) => {
+    const filename = stripExt(rawFilename);
     if (!filename) return;
     setSelectedFiles(prev => {
       const isSelecting = !prev.includes(filename);
@@ -311,8 +315,9 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
           {selectedFiles.length === 0 ? (
             <p className="text-gray-400 text-sm text-center mt-10 uppercase tracking-widest">Nenhuma foto selecionada.</p>
           ) : (
-            selectedFiles.map(filename => {
-              const img = album.images?.find(i => i.originalFilename === filename);
+            selectedFiles.map(rawFilename => {
+              const filename = stripExt(rawFilename);
+              const img = album.images?.find(i => stripExt(i.originalFilename) === filename);
               return (
                 <div key={filename} className="flex items-center gap-4 group bg-gray-50 p-2 rounded-lg border border-gray-100">
                   {img ? (
@@ -393,7 +398,7 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[120]">
              <button 
                 className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl ${
-                  selectedFiles.includes(album.images[selectedIndex].originalFilename) ? 'bg-white scale-110' : 'bg-black/50 text-white hover:bg-black/80 border border-white/20'
+                  selectedFiles.includes(stripExt(album.images[selectedIndex].originalFilename)) ? 'bg-white scale-110' : 'bg-black/50 text-white hover:bg-black/80 border border-white/20'
                 }`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -401,12 +406,12 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
                 }}
               >
                 <svg 
-                  className={`w-8 h-8 ${selectedFiles.includes(album.images[selectedIndex].originalFilename) ? 'text-red-500 fill-red-500' : 'text-white'}`} 
-                  fill={selectedFiles.includes(album.images[selectedIndex].originalFilename) ? "currentColor" : "none"} 
+                  className={`w-8 h-8 ${selectedFiles.includes(stripExt(album.images[selectedIndex].originalFilename)) ? 'text-red-500 fill-red-500' : 'text-white'}`} 
+                  fill={selectedFiles.includes(stripExt(album.images[selectedIndex].originalFilename)) ? "currentColor" : "none"} 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={selectedFiles.includes(album.images[selectedIndex].originalFilename) ? 0 : 2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={selectedFiles.includes(stripExt(album.images[selectedIndex].originalFilename)) ? 0 : 2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
               </button>
           </div>
@@ -416,7 +421,8 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
       {/* Grade de Fotos */}
       <MasonryGrid>
         {album.images?.map((img, index) => {
-          const isSelected = selectedFiles.includes(img.originalFilename);
+          const fileKey = stripExt(img.originalFilename);
+          const isSelected = selectedFiles.includes(fileKey);
           const isLandscape = img.aspectRatio && img.aspectRatio > 1;
           const aspectClass = isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
 
@@ -428,7 +434,7 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
             >
               <img 
                 src={img.url} 
-                alt={img.originalFilename}
+                alt={fileKey}
                 className={`w-full h-full object-cover transition-all duration-300 ${isSelected ? 'brightness-75 scale-[0.98]' : ''}`}
                 loading="lazy"
               />
@@ -455,7 +461,7 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
               </button>
 
               <div className="absolute bottom-4 left-4 bg-black/60 text-white text-[10px] px-2 py-1 tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                {img.originalFilename || 'S/ NOME'}
+                {fileKey || 'S/ NOME'}
               </div>
 
               {isSelected && (

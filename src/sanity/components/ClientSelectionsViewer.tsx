@@ -18,6 +18,8 @@ type AlbumImageMeta = {
   url?: string
 }
 
+const stripExt = (name: string) => String(name || '').replace(/\.[^/.]+$/, '')
+
 export function ClientSelectionsViewer(_props: StringInputProps) {
   const client = useClient({ apiVersion: '2024-01-01' })
   const slug = useFormValue(['slug']) as { current?: string } | undefined
@@ -74,7 +76,7 @@ export function ClientSelectionsViewer(_props: StringInputProps) {
   }, [fetchData])
 
   const copyLightroomList = async (id: string, files: string[] = []) => {
-    const listString = files.join(', ')
+    const listString = files.map(stripExt).join(', ')
     await navigator.clipboard.writeText(listString)
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 3000)
@@ -153,7 +155,7 @@ export function ClientSelectionsViewer(_props: StringInputProps) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {selections.map((item) => {
             const isSubmitted = item.status === 'submitted'
-            const files = item.selectedFiles || []
+            const files = (item.selectedFiles || []).map(stripExt)
             const isCopied = copiedId === item._id
             const showThumbs = expandedThumbs[item._id] ?? true
 
@@ -298,7 +300,7 @@ export function ClientSelectionsViewer(_props: StringInputProps) {
                       }}
                     >
                       {files.map((filename) => {
-                        const matched = albumImages.find((img) => img.filename === filename)
+                        const matched = albumImages.find((img) => stripExt(img.filename || '') === filename)
                         return (
                           <div
                             key={filename}

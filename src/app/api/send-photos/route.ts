@@ -10,6 +10,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Nenhuma foto selecionada.' }, { status: 400 });
     }
 
+    const cleanSelectedFiles: string[] = selectedFiles.map((f: unknown) =>
+      String(f).replace(/\.[^/.]+$/, '')
+    );
+
     const emailIdentifier = clientEmail ? String(clientEmail).trim() : (clientName ? String(clientName).trim() : '');
 
     // 1. Atualiza o status da seleção no Sanity caso o token esteja disponível
@@ -39,8 +43,8 @@ export async function POST(req: Request) {
           albumSlug: String(albumSlug),
           albumTitle: String(albumTitle || albumSlug),
           clientEmail: emailIdentifier,
-          selectedFiles: selectedFiles.map(String),
-          photoCount: selectedFiles.length,
+          selectedFiles: cleanSelectedFiles,
+          photoCount: cleanSelectedFiles.length,
           status: 'submitted',
           submittedAt: now,
           lastActivityAt: now,
@@ -59,18 +63,18 @@ export async function POST(req: Request) {
       },
     });
 
-    const fileList = selectedFiles.join(', ');
+    const fileList = cleanSelectedFiles.join(', ');
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: 'arturdiasr@gmail.com',
       subject: `Seleção de Fotos: ${albumTitle}${emailIdentifier ? ` (${emailIdentifier})` : ''}`,
-      text: `O cliente (${emailIdentifier || 'Não informado'}) finalizou a seleção de fotos do ensaio "${albumTitle}".\n\nE-mail do Cliente: ${emailIdentifier || 'Não informado'}\nQuantidade: ${selectedFiles.length} fotos.\n\nLista para o Lightroom:\n${fileList}`,
+      text: `O cliente (${emailIdentifier || 'Não informado'}) finalizou a seleção de fotos do ensaio "${albumTitle}".\n\nE-mail do Cliente: ${emailIdentifier || 'Não informado'}\nQuantidade: ${cleanSelectedFiles.length} fotos.\n\nLista para o Lightroom:\n${fileList}`,
       html: `
         <h2>Seleção de Fotos: ${albumTitle}</h2>
         <p>O cliente finalizou a seleção de fotos e enviou para edição.</p>
         <p><strong>E-mail do Cliente:</strong> ${emailIdentifier || 'Não informado'}</p>
-        <p><strong>Quantidade:</strong> ${selectedFiles.length} fotos.</p>
+        <p><strong>Quantidade:</strong> ${cleanSelectedFiles.length} fotos.</p>
         <p><strong>Lista para o Lightroom:</strong></p>
         <div style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; font-family: monospace; word-break: break-all;">
           ${fileList}
