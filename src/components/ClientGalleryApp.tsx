@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { urlForImage } from "@/sanity/lib/image";
-
 import MasonryGrid from '@/components/MasonryGrid';
 
 type ClientAlbumData = {
@@ -31,7 +31,7 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
   const [clientEmail, setClientEmail] = useState('');
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  
+
   // Lista de nomes de arquivos selecionados
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [isClient, setIsClient] = useState(false);
@@ -42,11 +42,12 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
   const [showToast, setShowToast] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [hasMinimizedSidebar, setHasMinimizedSidebar] = useState(false);
+  const touchStartX = useRef<number | null>(null);
 
   // Usamos localStorage para manter o estado
   useEffect(() => {
     setIsClient(true);
-    
+
     // Verifica se já estava logado antes
     const authStatus = localStorage.getItem(`auth_${album.slug}`);
     const savedEmail = localStorage.getItem(`client_email_${album.slug}`) || '';
@@ -83,7 +84,6 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
         const parsed = JSON.parse(savedSelections);
         const normalized = Array.isArray(parsed) ? parsed.map((f: string) => stripExt(f)) : [];
         setSelectedFiles(normalized);
-        // Se já existiam itens selecionados e ele entra novamente, assume que já minimizou para não forçar a barra toda vez
         if (normalized.length > 0) {
           setHasMinimizedSidebar(true);
         }
@@ -139,6 +139,22 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedIndex, album.images]);
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || !album.images?.length) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (diff > 45) {
+      setSelectedIndex((prev) => (prev! + 1) % album.images.length);
+    }
+    if (diff < -45) {
+      setSelectedIndex((prev) => (prev! - 1 + album.images.length) % album.images.length);
+    }
+    touchStartX.current = null;
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordInput !== album.password) {
@@ -170,15 +186,14 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
     if (!filename) return;
     setSelectedFiles(prev => {
       const isSelecting = !prev.includes(filename);
-      const newFiles = isSelecting 
-        ? [...prev, filename] 
+      const newFiles = isSelecting
+        ? [...prev, filename]
         : prev.filter(f => f !== filename);
-      
-      // Abre a sidebar se for a primeira foto sendo selecionada e o usuário não a minimizou ainda
+
       if (isSelecting && prev.length === 0 && !hasMinimizedSidebar) {
         setSidebarOpen(true);
       }
-      
+
       return newFiles;
     });
   };
@@ -207,7 +222,6 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
         setShowToast(true);
         setTimeout(() => setShowToast(false), 5000);
 
-        // Atualiza status no Sanity para submitted
         fetch('/api/client-selections', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -231,52 +245,61 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
   };
 
   // Previne SSR Hydration Mismatch
-  if (!isClient) return <div className="min-h-screen bg-gray-50" />;
+  if (!isClient) return <div className="min-h-screen bg-neutral-50" />;
 
   // TELA DE LOGIN
   if (!isAuthenticated) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950 p-4">
         {album.coverImage && (
-          <div className="absolute inset-0 opacity-40">
-            <img 
-              src={urlForImage(album.coverImage).url()} 
-              alt="Capa do Ensaio" 
+          <div className="absolute inset-0 opacity-35">
+            <img
+              src={urlForImage(album.coverImage).url()}
+              alt="Capa do Ensaio"
               className="w-full h-full object-cover"
             />
           </div>
         )}
-        <div className="relative z-10 bg-white p-10 md:p-14 max-w-md w-full shadow-2xl flex flex-col items-center text-center">
-          <h1 className="text-2xl md:text-3xl font-bold uppercase tracking-widest mb-2">{album.title}</h1>
-          <p className="text-gray-500 mb-8 text-sm">
-            {requireEmail 
-              ? 'Informe seu e-mail e a senha para acessar suas fotos.'
-              : 'Digite a senha para acessar suas fotos.'}
+        <div className="relative z-10 bg-white p-10 md:p-14 max-w-md w-full shadow-2xl border border-neutral-100 flex flex-col items-center text-center">
+          <span className="font-sans text-[10px] uppercase tracking-[0.28em] text-neutral-400 font-semibold mb-2">
+            Galeria Privada
+          </span>
+          <h1 className="font-serif text-3xl md:text-4xl font-normal tracking-tight text-neutral-950 mb-3">
+            {album.title}
+          </h1>
+          <p className="text-neutral-500 mb-8 text-xs sm:text-sm leading-relaxed">
+            {requireEmail
+              ? 'Informe seu e-mail e a senha exclusiva para acessar e selecionar suas fotografias.'
+              : 'Digite a senha exclusiva para acessar suas fotografias.'}
           </p>
-          
+
           <form onSubmit={handleLogin} className="w-full flex flex-col gap-4">
             {requireEmail && (
-              <input 
-                type="email" 
+              <input
+                type="email"
                 placeholder="Seu e-mail"
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
-                className="w-full p-4 border border-gray-200 text-center text-base focus:outline-none focus:border-black transition-colors"
+                className="w-full p-4 border border-neutral-200 text-center text-sm focus:outline-none focus:border-black transition-colors"
                 required
               />
             )}
-            <input 
-              type="password" 
+            <input
+              type="password"
               placeholder="Senha de Acesso"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
-              className="w-full p-4 border border-gray-200 text-center text-lg tracking-widest focus:outline-none focus:border-black transition-colors"
+              className="w-full p-4 border border-neutral-200 text-center text-base tracking-widest focus:outline-none focus:border-black transition-colors"
               required
             />
-            {error && <p className="text-red-500 text-xs uppercase font-bold tracking-widest">{errorMessage || 'Senha Incorreta'}</p>}
-            <button 
+            {error && (
+              <p className="text-red-500 text-xs uppercase font-bold tracking-widest">
+                {errorMessage || 'Senha Incorreta'}
+              </p>
+            )}
+            <button
               type="submit"
-              className="w-full bg-black text-white p-4 font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors"
+              className="w-full bg-black text-white p-4 text-xs font-bold uppercase tracking-[0.22em] hover:bg-neutral-800 transition-colors cursor-pointer mt-1"
             >
               Acessar Galeria
             </button>
@@ -288,50 +311,75 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
 
   // TELA DA GALERIA
   return (
-    <div className={`w-full pb-32 transition-all duration-500 ${sidebarOpen ? 'md:pr-96' : ''}`}>
-      
-      {/* Toast Animado */}
-      <div className={`fixed top-10 left-1/2 -translate-x-1/2 z-[100] bg-green-500 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 transition-all duration-500 transform ${showToast ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0 pointer-events-none'}`}>
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-        <span className="font-bold tracking-wide">Fotos enviadas com sucesso! Agora é só aguardar as fotos editadas!</span>
+    <div className={`w-full pb-36 transition-all duration-500 ${sidebarOpen ? 'md:pr-96' : ''}`}>
+      {/* Toast Animado Editorial */}
+      <div
+        className={`fixed top-8 left-1/2 -translate-x-1/2 z-[100] bg-neutral-950 text-white px-6 py-4 rounded-xs shadow-2xl border border-white/10 flex items-center gap-3 transition-all duration-500 transform ${
+          showToast ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0 pointer-events-none'
+        }`}
+      >
+        <svg className="w-5 h-5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+        <span className="text-xs font-semibold tracking-wider uppercase">
+          Seleção enviada com sucesso! Agora é só aguardar as fotos editadas.
+        </span>
       </div>
 
       {/* Sidebar Lateral */}
-      <div 
-        className={`fixed top-0 right-0 h-full bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.1)] z-50 transition-transform duration-500 flex flex-col ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} w-80 md:w-96`}
+      <div
+        className={`fixed top-0 right-0 h-full bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.08)] z-50 transition-transform duration-500 flex flex-col border-l border-neutral-100 ${
+          sidebarOpen ? 'translate-x-0' : 'translate-x-full'
+        } w-80 md:w-96`}
       >
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+        <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/70">
           <div>
-            <h3 className="font-bold uppercase tracking-widest text-sm">Fotos Selecionadas ({selectedFiles.length})</h3>
+            <h3 className="font-bold uppercase tracking-[0.2em] text-xs text-neutral-900">
+              Selecionadas ({selectedFiles.length})
+            </h3>
             {clientEmail && (
-              <p className="text-[11px] text-gray-500 truncate mt-0.5">{clientEmail}</p>
+              <p className="text-[11px] text-neutral-500 truncate mt-0.5">{clientEmail}</p>
             )}
           </div>
-          <button onClick={handleMinimizeSidebar} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          <button
+            onClick={handleMinimizeSidebar}
+            className="p-2 hover:bg-neutral-200/70 rounded-full transition-colors text-neutral-500 cursor-pointer"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-32">
           {selectedFiles.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center mt-10 uppercase tracking-widest">Nenhuma foto selecionada.</p>
+            <p className="text-neutral-400 text-xs text-center mt-10 uppercase tracking-[0.2em]">
+              Nenhuma foto selecionada.
+            </p>
           ) : (
             selectedFiles.map(rawFilename => {
               const filename = stripExt(rawFilename);
               const img = album.images?.find(i => stripExt(i.originalFilename) === filename);
               return (
-                <div key={filename} className="flex items-center gap-4 group bg-gray-50 p-2 rounded-lg border border-gray-100">
+                <div
+                  key={filename}
+                  className="flex items-center gap-4 group bg-neutral-50/80 p-2.5 rounded-xs border border-neutral-100"
+                >
                   {img ? (
-                    <img src={img.url} alt={filename} className="w-16 h-16 object-cover rounded shadow-sm" />
+                    <img src={img.url} alt={filename} className="w-14 h-14 object-cover rounded-xs shadow-xs" />
                   ) : (
-                    <div className="w-16 h-16 bg-gray-200 rounded shadow-sm"></div>
+                    <div className="w-14 h-14 bg-neutral-200 rounded-xs" />
                   )}
-                  <span className="text-xs tracking-wider flex-1 truncate font-medium text-gray-700">{filename}</span>
-                  <button 
+                  <span className="font-mono text-xs tracking-wider flex-1 truncate text-neutral-700">
+                    {filename}
+                  </span>
+                  <button
                     onClick={() => toggleSelection(filename)}
-                    className="text-gray-400 hover:text-red-500 transition-colors p-2"
-                    title="Remover"
+                    className="text-neutral-400 hover:text-red-500 transition-colors p-2 cursor-pointer"
+                    title="Remover da seleção"
                   >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
                   </button>
                 </div>
               );
@@ -342,81 +390,135 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
 
       {/* Botão flutuante para abrir a sidebar quando fechada */}
       {!sidebarOpen && selectedFiles.length > 0 && (
-        <button 
+        <button
           onClick={() => setSidebarOpen(true)}
-          className="fixed top-1/2 right-0 -translate-y-1/2 bg-black text-white p-3 md:p-4 rounded-l-xl shadow-2xl z-40 hover:bg-gray-800 transition-colors group flex items-center cursor-pointer"
+          className="fixed top-1/2 right-0 -translate-y-1/2 bg-black text-white p-3.5 md:p-4 rounded-l-xs shadow-2xl z-40 hover:bg-neutral-800 transition-colors group flex items-center cursor-pointer"
         >
-          <svg className="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-          <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 whitespace-nowrap ml-0 group-hover:ml-3 font-bold text-xs md:text-sm tracking-widest">
+          <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+          <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 whitespace-nowrap ml-0 group-hover:ml-3 font-bold text-xs tracking-[0.2em]">
             VER SELEÇÃO ({selectedFiles.length})
           </span>
         </button>
       )}
 
-      {/* Lightbox Overlay */}
-      {selectedIndex !== null && album.images && album.images[selectedIndex] && (
-        <div 
-          className="fixed inset-0 z-[110] bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm"
-          onClick={() => setSelectedIndex(null)}
-          onContextMenu={(e) => e.preventDefault()}
-        >
-          <button 
-            className="absolute top-6 right-6 text-white text-4xl hover:text-gray-300 transition-colors z-[120] w-12 h-12 flex items-center justify-center"
-            onClick={(e) => { e.stopPropagation(); setSelectedIndex(null); }}
+      {/* Lightbox Overlay com Gestos Mobile */}
+      <AnimatePresence>
+        {selectedIndex !== null && album.images && album.images[selectedIndex] && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-[110] bg-neutral-950/95 flex items-center justify-center p-4 backdrop-blur-md select-none"
+            onClick={() => setSelectedIndex(null)}
+            onContextMenu={(e) => e.preventDefault()}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           >
-            &times;
-          </button>
-          
-          <img 
-            src={album.images[selectedIndex].url} 
-            alt={album.images[selectedIndex].originalFilename}
-            className="max-w-full max-h-[85vh] object-contain select-none"
-            onClick={(e) => e.stopPropagation()} 
-          />
+            {/* Topo do Lightbox */}
+            <div className="absolute top-0 left-0 right-0 p-5 md:p-7 flex justify-between items-center text-white/80 z-[120] pointer-events-none">
+              <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-xs border border-white/10 pointer-events-auto">
+                <span className="font-mono text-xs tracking-[0.2em] text-neutral-300">
+                  {String(selectedIndex + 1).padStart(2, '0')} <span className="text-neutral-600">/</span> {String(album.images.length).padStart(2, '0')}
+                </span>
+                <span className="text-neutral-600">•</span>
+                <span className="font-mono text-[11px] tracking-wider text-neutral-400">
+                  {stripExt(album.images[selectedIndex].originalFilename)}
+                </span>
+              </div>
 
-          <button 
-            className="absolute left-2 md:left-10 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors p-2 md:p-4 z-[120]"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedIndex((prev) => (prev! - 1 + album.images!.length) % album.images!.length);
-            }}
-          >
-            <svg className="w-8 h-8 md:w-12 md:h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-          </button>
-          
-          <button 
-            className="absolute right-2 md:right-10 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors p-2 md:p-4 z-[120]"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedIndex((prev) => (prev! + 1) % album.images!.length);
-            }}
-          >
-            <svg className="w-8 h-8 md:w-12 md:h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-          </button>
+              <button
+                className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-white/80 hover:text-white bg-black/40 hover:bg-black/70 backdrop-blur-md px-3.5 py-2 rounded-xs border border-white/10 transition-all cursor-pointer pointer-events-auto"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedIndex(null);
+                }}
+              >
+                <span className="hidden sm:inline text-[10px] font-semibold">Fechar</span>
+                <span className="text-lg leading-none">&times;</span>
+              </button>
+            </div>
 
-          {/* Heart button inside lightbox */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[120]">
-             <button 
-                className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl ${
-                  selectedFiles.includes(stripExt(album.images[selectedIndex].originalFilename)) ? 'bg-white scale-110' : 'bg-black/50 text-white hover:bg-black/80 border border-white/20'
+            <motion.img
+              key={selectedIndex}
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.2 }}
+              src={album.images[selectedIndex].url}
+              alt={album.images[selectedIndex].originalFilename}
+              className="max-w-full max-h-[82vh] object-contain select-none shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+
+            <button
+              className="absolute left-3 md:left-8 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-white/70 hover:text-white bg-black/40 hover:bg-white/15 backdrop-blur-sm border border-white/10 rounded-full transition-all z-[120] cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedIndex((prev) => (prev! - 1 + album.images!.length) % album.images!.length);
+              }}
+              aria-label="Anterior"
+            >
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            <button
+              className="absolute right-3 md:right-8 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-white/70 hover:text-white bg-black/40 hover:bg-white/15 backdrop-blur-sm border border-white/10 rounded-full transition-all z-[120] cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedIndex((prev) => (prev! + 1) % album.images!.length);
+              }}
+              aria-label="Próxima"
+            >
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            {/* Botão Favoritar no Lightbox */}
+            <div className="absolute bottom-7 left-1/2 -translate-x-1/2 z-[120]">
+              <button
+                className={`px-6 py-3.5 rounded-full flex items-center gap-2.5 transition-all duration-300 shadow-2xl cursor-pointer text-xs uppercase tracking-[0.2em] font-bold ${
+                  selectedFiles.includes(stripExt(album.images[selectedIndex].originalFilename))
+                    ? 'bg-white text-black scale-105'
+                    : 'bg-black/60 text-white hover:bg-black/85 border border-white/20 backdrop-blur-md'
                 }`}
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleSelection(album.images![selectedIndex!].originalFilename);
                 }}
               >
-                <svg 
-                  className={`w-8 h-8 ${selectedFiles.includes(stripExt(album.images[selectedIndex].originalFilename)) ? 'text-red-500 fill-red-500' : 'text-white'}`} 
-                  fill={selectedFiles.includes(stripExt(album.images[selectedIndex].originalFilename)) ? "currentColor" : "none"} 
-                  stroke="currentColor" 
+                <svg
+                  className={`w-5 h-5 ${
+                    selectedFiles.includes(stripExt(album.images[selectedIndex].originalFilename))
+                      ? 'text-red-500 fill-red-500'
+                      : 'text-white'
+                  }`}
+                  fill={selectedFiles.includes(stripExt(album.images[selectedIndex].originalFilename)) ? "currentColor" : "none"}
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={selectedFiles.includes(stripExt(album.images[selectedIndex].originalFilename)) ? 0 : 2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={selectedFiles.includes(stripExt(album.images[selectedIndex].originalFilename)) ? 0 : 1.75}
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                  />
                 </svg>
+                <span>
+                  {selectedFiles.includes(stripExt(album.images[selectedIndex].originalFilename))
+                    ? 'Selecionada'
+                    : 'Selecionar Foto'}
+                </span>
               </button>
-          </div>
-        </div>
-      )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Grade de Fotos */}
       <MasonryGrid>
@@ -427,22 +529,26 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
           const aspectClass = isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
 
           return (
-            <div 
-              key={index} 
-              className={`relative break-inside-avoid mb-6 w-full block shadow-sm hover:shadow-xl transition-all duration-300 group cursor-zoom-in ${aspectClass}`}
+            <div
+              key={index}
+              className={`relative break-inside-avoid mb-6 w-full block overflow-hidden bg-neutral-100 shadow-sm hover:shadow-xl transition-all duration-300 group cursor-zoom-in ${aspectClass}`}
               onClick={() => setSelectedIndex(index)}
             >
-              <img 
-                src={img.url} 
+              <img
+                src={img.url}
                 alt={fileKey}
-                className={`w-full h-full object-cover transition-all duration-300 ${isSelected ? 'brightness-75 scale-[0.98]' : ''}`}
+                className={`w-full h-full object-cover transition-all duration-500 ${
+                  isSelected ? 'brightness-90 scale-[0.985]' : 'group-hover:scale-[1.02]'
+                }`}
                 loading="lazy"
               />
-              
-              {/* Botão Coração */}
-              <button 
-                className={`absolute top-4 right-4 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 z-10 ${
-                  isSelected ? 'bg-white opacity-100 shadow-lg scale-110' : 'bg-black/30 opacity-0 group-hover:opacity-100 hover:bg-black/60 text-white backdrop-blur-sm'
+
+              {/* Botão Coração (Sempre acessível no mobile e visível no hover no desktop) */}
+              <button
+                className={`absolute top-3.5 right-3.5 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 z-10 cursor-pointer ${
+                  isSelected
+                    ? 'bg-white opacity-100 shadow-lg scale-105'
+                    : 'bg-black/35 opacity-90 md:opacity-0 md:group-hover:opacity-100 hover:bg-black/65 text-white backdrop-blur-sm'
                 }`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -450,22 +556,36 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
                 }}
                 title={isSelected ? "Remover dos favoritos" : "Adicionar aos favoritos"}
               >
-                <svg 
-                  className={`w-6 h-6 ${isSelected ? 'text-red-500 fill-red-500' : 'text-white'}`} 
-                  fill={isSelected ? "currentColor" : "none"} 
-                  stroke="currentColor" 
+                <svg
+                  className={`w-5 h-5 ${isSelected ? 'text-red-500 fill-red-500' : 'text-white'}`}
+                  fill={isSelected ? "currentColor" : "none"}
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={isSelected ? 0 : 2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={isSelected ? 0 : 1.75}
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                  />
                 </svg>
               </button>
 
-              <div className="absolute bottom-4 left-4 bg-black/60 text-white text-[10px] px-2 py-1 tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              {/* Nome do Arquivo Discreto na Base */}
+              <div className="absolute bottom-3 left-3 bg-black/55 backdrop-blur-sm text-white font-mono text-[10px] px-2.5 py-1 tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                 {fileKey || 'S/ NOME'}
               </div>
 
+              {/* Destaque Editorial de Foto Selecionada (Substitui a borda verde saturada) */}
               {isSelected && (
-                <div className="absolute inset-0 border-4 border-green-500 pointer-events-none transition-all duration-300" />
+                <div className="absolute inset-0 ring-2 ring-black/85 ring-inset pointer-events-none transition-all duration-300">
+                  <div className="absolute top-3.5 left-3.5 bg-black text-white text-[9px] uppercase tracking-[0.22em] font-bold px-2.5 py-1.5 flex items-center gap-1.5 shadow-md">
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Selecionada
+                  </div>
+                </div>
               )}
             </div>
           );
@@ -473,24 +593,32 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
       </MasonryGrid>
 
       {/* Barra Inferior Fixa */}
-      <div className={`fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-10px_30px_rgb(0,0,0,0.05)] z-40 p-4 md:p-6 flex flex-col md:flex-row items-center justify-center gap-6 md:gap-16 transition-all duration-500 ${sidebarOpen ? 'md:w-[calc(100%-24rem)]' : ''}`}>
-        <div className="text-center">
-          <p className="text-xl font-bold uppercase tracking-widest text-black">{selectedFiles.length} Favoritas</p>
-          <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">de {album.images?.length || 0} fotos totais</p>
+      <div
+        className={`fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-neutral-200 shadow-[0_-10px_30px_rgb(0,0,0,0.05)] z-40 p-4 md:p-5 flex flex-col md:flex-row items-center justify-center gap-4 md:gap-14 transition-all duration-500 ${
+          sidebarOpen ? 'md:w-[calc(100%-24rem)]' : ''
+        }`}
+      >
+        <div className="text-center md:text-left">
+          <p className="font-serif text-2xl text-neutral-950 leading-none">
+            {selectedFiles.length} {selectedFiles.length === 1 ? 'Foto Favorita' : 'Fotos Favoritas'}
+          </p>
+          <p className="font-sans text-[10px] text-neutral-400 uppercase tracking-[0.25em] mt-1">
+            de {album.images?.length || 0} fotografias totais
+          </p>
         </div>
-        
-        <button 
+
+        <button
           onClick={handleSendList}
           disabled={selectedFiles.length === 0 || isSending}
-          className={`px-8 py-4 font-bold uppercase tracking-widest text-sm transition-all flex items-center justify-center gap-3 w-full md:w-auto min-w-[280px] ${
-            selectedFiles.length === 0 
-              ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
-              : 'bg-black text-white hover:bg-gray-800 hover:scale-105 shadow-xl hover:shadow-2xl'
+          className={`px-8 py-4 font-bold uppercase tracking-[0.22em] text-xs transition-all flex items-center justify-center gap-3 w-full md:w-auto min-w-[280px] ${
+            selectedFiles.length === 0
+              ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+              : 'bg-black text-white hover:bg-neutral-800 shadow-lg hover:shadow-xl cursor-pointer'
           }`}
         >
           {isSending ? (
             <>
-              <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
@@ -498,8 +626,10 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
             </>
           ) : (
             <>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-              Enviar Lista de Fotos
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+              Finalizar e Enviar Seleção
             </>
           )}
         </button>

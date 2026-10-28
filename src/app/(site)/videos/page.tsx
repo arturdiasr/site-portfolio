@@ -15,20 +15,25 @@ export default async function VideosPage() {
     "coverImage": coverImage,
     format
   }`;
-  
+
   const videos = await client.fetch(query);
 
   return (
-    <div className="w-full space-y-20 pb-20">
-      <div className="pt-8 space-y-4 text-center">
-        <Link href="/" className="text-gray-400 hover:text-black uppercase tracking-widest text-xs transition-colors mb-6 inline-block">
-          &larr; Voltar
+    <div className="w-full space-y-16 pb-20">
+      <div className="pt-4 space-y-3 text-center">
+        <Link
+          href="/"
+          className="font-sans text-neutral-400 hover:text-black uppercase tracking-[0.25em] text-[11px] font-semibold transition-colors mb-2 inline-block"
+        >
+          &larr; Voltar ao Portfólio
         </Link>
-        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter uppercase">Vídeos</h1>
+        <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl font-normal tracking-tight text-neutral-950">
+          Vídeos
+        </h1>
       </div>
 
       {videos.length === 0 ? (
-        <p className="text-center text-gray-400 py-20 border border-dashed border-gray-200">
+        <p className="text-center text-neutral-400 py-20 border border-dashed border-neutral-200">
           Nenhum vídeo encontrado.
         </p>
       ) : (
@@ -36,14 +41,14 @@ export default async function VideosPage() {
           {videos.map((video: any) => {
             const isLandscape = video.format === 'Horizontal (ex: YouTube/Cinema)';
             const aspectClass = isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
-            
+
             return (
               <div className="w-full" key={video._id}>
-                <VideoCard 
+                <VideoCard
                   video={{
                     ...video,
                     coverImage: video.coverImage ? urlForImage(video.coverImage).url() : ''
-                  }} 
+                  }}
                   aspectClass={aspectClass}
                 />
               </div>

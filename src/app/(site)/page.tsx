@@ -1,5 +1,6 @@
 import { client } from "@/sanity/lib/client";
 import { urlForImage } from "@/sanity/lib/image";
+import { Link } from "next-view-transitions";
 import HomeMasonry from "@/components/HomeMasonry";
 import LatestWorksCarousel from "@/components/LatestWorksCarousel";
 import TestimonialsSection from "@/components/TestimonialsSection";
@@ -174,6 +175,35 @@ export default async function Portfolio() {
         <LatestWorksCarousel galleries={formattedLatestGalleries} />
 
         <TestimonialsSection testimonials={testimonials} />
+
+        {/* Seção Pré-Footer de Conversão Editorial */}
+        <section className="w-full max-w-4xl mx-auto py-20 px-6 text-center border-t border-neutral-100">
+          <span className="font-sans text-[11px] uppercase tracking-[0.3em] text-neutral-400 font-semibold block mb-3">
+            Disponibilidade para Novos Projetos
+          </span>
+          <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-neutral-950 font-normal tracking-tight mb-5">
+            Vamos criar memórias e imagens inesquecíveis juntos?
+          </h2>
+          <p className="font-sans text-neutral-500 text-sm max-w-xl mx-auto leading-relaxed mb-9">
+            Atendendo ensaios, arquitetura, música e eventos em Brasília e em todo o território nacional. Entre em contato para consultar datas disponíveis e propostas personalizadas.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a
+              href="https://wa.me/5561991071783?text=Ol%C3%A1%2C%20Artur!%20Gostaria%20de%20solicitar%20um%20or%C3%A7amento%20de%20fotografia."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto bg-black text-white px-8 py-4 text-xs uppercase tracking-[0.22em] font-bold hover:bg-neutral-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 duration-300"
+            >
+              Solicitar Orçamento via WhatsApp
+            </a>
+            <Link
+              href="/sobre"
+              className="w-full sm:w-auto border border-neutral-300 text-neutral-800 px-8 py-4 text-xs uppercase tracking-[0.22em] font-semibold hover:border-black hover:text-black transition-colors"
+            >
+              Conhecer Minha Trajetória
+            </Link>
+          </div>
+        </section>
       </div>
       
     </div>
