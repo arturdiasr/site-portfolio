@@ -71,10 +71,10 @@ export default function HomeMasonry({ items }: { items: any[] }) {
                 <Link
                   data-cursor="VER"
                   href={targetHref}
-                  className="group relative w-full block overflow-hidden bg-neutral-900 cursor-pointer shadow-sm hover:shadow-2xl transition-all duration-700"
+                  className="group relative w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all"
                 >
                   <div
-                    className={`w-full relative ${aspectClass} overflow-hidden`}
+                    className={`w-full relative ${aspectClass}`}
                     style={{ viewTransitionName: `category-cover-${item._id}` }}
                   >
                     <RotatingCardImage
@@ -88,8 +88,7 @@ export default function HomeMasonry({ items }: { items: any[] }) {
                       alt={item.title}
                       priority={isTopRow}
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      indexOffset={item.globalIdx ?? itemIdx}
-                      className="object-cover transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
+                      indexOffset={itemIdx}
                     />
                   </div>
 

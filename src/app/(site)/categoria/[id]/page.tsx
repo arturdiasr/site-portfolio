@@ -2,7 +2,6 @@ import { client } from "@/sanity/lib/client";
 import { urlForImage } from "@/sanity/lib/image";
 import { Link } from "next-view-transitions";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import LightboxGallery from "@/components/LightboxGallery";
 import MasonryGrid from "@/components/MasonryGrid";
 
@@ -62,16 +61,14 @@ export default async function CategoriaPage({ params }: { params: Promise<{ id: 
                   <Link
                     href={`/galeria/${gallery._id}`}
                     key={gallery._id}
-                    className="group relative break-inside-avoid mb-6 w-full block overflow-hidden bg-neutral-900 cursor-pointer shadow-sm hover:shadow-2xl transition-all duration-700"
+                    className="group relative break-inside-avoid mb-6 w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all"
                   >
-                    <div className={`w-full relative ${aspectClass} overflow-hidden`}>
+                    <div className={`w-full ${aspectClass}`}>
                       {gallery.coverImage ? (
-                        <Image
-                          src={urlForImage(gallery.coverImage).width(1200).url()}
+                        <img
+                          src={urlForImage(gallery.coverImage).url()}
                           alt={gallery.title}
-                          fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          className="object-cover transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
+                          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                         />
                       ) : (
                         <div className="w-full h-full bg-gray-200 flex items-center justify-center text-xs text-gray-400">

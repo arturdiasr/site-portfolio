@@ -18,16 +18,18 @@ export default function RotatingCardImage({
   priority = false,
   sizes = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw',
   indexOffset = 0,
-  className = 'object-cover transition-transform duration-1000 ease-out group-hover:scale-[1.03]',
+  className = 'object-cover transition-transform duration-1000 group-hover:scale-105',
 }: RotatingCardImageProps) {
+  // Se não houver imagens, não renderiza nada
   if (!images || images.length === 0) {
     return (
-      <div className="w-full h-full bg-neutral-200 flex items-center justify-center text-xs text-neutral-400">
+      <div className="w-full h-full bg-gray-200 flex items-center justify-center text-xs text-gray-400">
         Sem foto de capa
       </div>
     );
   }
 
+  // Se houver apenas 1 imagem, renderiza estático com efeito blur-up
   if (images.length === 1) {
     return (
       <SingleCardImage
@@ -92,36 +94,25 @@ function RotatingCardCarousel({
   indexOffset = 0,
   className,
 }: RotatingCardImageProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  // Começa no 0 para SSR consistente
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loadedImages, setLoadedImages] = useState<Record<number, boolean>>({});
   const [isHovered, setIsHovered] = useState(false);
-  const [isInView, setIsInView] = useState(false);
   const isHoveredRef = useRef(isHovered);
   isHoveredRef.current = isHovered;
 
-  // Detecta visibilidade no viewport para pré-carregar e rotacionar apenas cards próximos/visíveis
+  // Pré-carrega todas as imagens na memória para rotação instantânea e sem engasgos
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') {
-      setIsInView(true);
-      return;
-    }
+    if (typeof window === 'undefined' || !images || images.length <= 1) return;
+    images.forEach((url) => {
+      if (url) {
+        const img = new window.Image();
+        img.src = url;
+      }
+    });
+  }, [images]);
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsInView(true);
-        }
-      },
-      { rootMargin: '250px' }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  // Ao montar no cliente: sorteia a foto inicial para dinamismo a cada visita
+  // Ao montar no cliente: sorteia a foto inicial para que cada visita traga uma foto diferente!
   useEffect(() => {
     if (images.length > 1) {
       const initialRandom = Math.floor(Math.random() * images.length);
@@ -129,16 +120,19 @@ function RotatingCardCarousel({
     }
   }, [images.length]);
 
-  // Ciclo de rotação orgânico e desfasado (apenas quando visível no viewport)
+  // Ciclo de rotação com delay longo e orgânico (desfasado entre cards)
   useEffect(() => {
-    if (images.length <= 1 || !isInView) return;
+    if (images.length <= 1) return;
 
+    // Delay base longo: 8500ms a 12500ms, desfasado pelo índice do card
+    // Isso garante que os cards não troquem todos juntos no mesmo segundo
     const staggeredDelay = 8500 + (indexOffset % 5) * 1200;
 
     const interval = setInterval(() => {
       if (isHoveredRef.current) return;
 
       setCurrentIndex((prev) => {
+        // Escolhe aleatoriamente uma próxima foto diferente da atual
         let next = Math.floor(Math.random() * images.length);
         if (next === prev) {
           next = (prev + 1) % images.length;
@@ -148,11 +142,10 @@ function RotatingCardCarousel({
     }, staggeredDelay);
 
     return () => clearInterval(interval);
-  }, [images.length, indexOffset, isInView]);
+  }, [images.length, indexOffset]);
 
   return (
     <div
-      ref={containerRef}
       className="absolute inset-0 w-full h-full overflow-hidden bg-neutral-100"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -160,8 +153,6 @@ function RotatingCardCarousel({
       {images.map((imgUrl, idx) => {
         const isActive = idx === currentIndex;
         const isLoaded = !!loadedImages[idx];
-        // Renderiza imediatamente a imagem ativa/inicial, e as demais assim que o card entra na área de visão
-        if (!isActive && idx !== 0 && !isInView) return null;
 
         return (
           <div
