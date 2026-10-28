@@ -261,16 +261,13 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
           </div>
         )}
         <div className="relative z-10 bg-white p-10 md:p-14 max-w-md w-full shadow-2xl border border-neutral-100 flex flex-col items-center text-center">
-          <span className="font-sans text-[10px] uppercase tracking-[0.28em] text-neutral-400 font-semibold mb-2">
-            Galeria Privada
-          </span>
-          <h1 className="font-serif text-3xl md:text-4xl font-normal tracking-tight text-neutral-950 mb-3">
+          <h1 className="text-2xl md:text-3xl font-bold uppercase tracking-widest mb-2">
             {album.title}
           </h1>
-          <p className="text-neutral-500 mb-8 text-xs sm:text-sm leading-relaxed">
+          <p className="text-gray-500 mb-8 text-sm">
             {requireEmail
-              ? 'Informe seu e-mail e a senha exclusiva para acessar e selecionar suas fotografias.'
-              : 'Digite a senha exclusiva para acessar suas fotografias.'}
+              ? 'Informe seu e-mail e a senha para acessar suas fotos.'
+              : 'Digite a senha para acessar suas fotos.'}
           </p>
 
           <form onSubmit={handleLogin} className="w-full flex flex-col gap-4">
@@ -598,12 +595,12 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
           sidebarOpen ? 'md:w-[calc(100%-24rem)]' : ''
         }`}
       >
-        <div className="text-center md:text-left">
-          <p className="font-serif text-2xl text-neutral-950 leading-none">
-            {selectedFiles.length} {selectedFiles.length === 1 ? 'Foto Favorita' : 'Fotos Favoritas'}
+        <div className="text-center">
+          <p className="text-xl font-bold uppercase tracking-widest text-black">
+            {selectedFiles.length} Favoritas
           </p>
-          <p className="font-sans text-[10px] text-neutral-400 uppercase tracking-[0.25em] mt-1">
-            de {album.images?.length || 0} fotografias totais
+          <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">
+            de {album.images?.length || 0} fotos totais
           </p>
         </div>
 

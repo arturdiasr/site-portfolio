@@ -18,23 +18,18 @@ export default async function DeliveryPage({ params }: { params: Promise<{ slug:
   if (!delivery) notFound();
 
   return (
-    <div className="w-full pt-6 pb-24">
-      <div className="text-center space-y-2 mb-12">
-        <Link
-          href="/"
-          className="font-sans text-neutral-400 hover:text-black uppercase tracking-[0.25em] text-[11px] font-semibold transition-colors inline-block mb-1"
-        >
+    <div className="w-full pt-8 pb-20">
+      <div className="text-center space-y-4 mb-10">
+        <Link href="/" className="text-gray-400 hover:text-black uppercase tracking-widest text-xs transition-colors inline-block">
           &larr; Voltar ao Portfólio
         </Link>
-        <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl font-normal tracking-tight text-neutral-950">
-          {delivery.title}
-        </h1>
-        <p className="font-sans text-[11px] tracking-[0.28em] uppercase text-neutral-400 font-medium">
-          Entrega das Fotografias Finais
-        </p>
+        <h1 className="text-3xl md:text-5xl font-extrabold tracking-tighter uppercase">{delivery.title}</h1>
+        <p className="text-xs tracking-widest uppercase text-gray-400">Entrega das Fotos Finais</p>
       </div>
 
-      <DeliveryApp downloadUrl={delivery.externalUrl} />
+      <DeliveryApp
+        downloadUrl={delivery.externalUrl}
+      />
     </div>
   );
 }

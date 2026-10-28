@@ -93,38 +93,38 @@ export default function HomeMasonry({ items }: { items: any[] }) {
                     />
                   </div>
 
-                  {/* Número de Série Editorial no Topo Esquerdo (Desktop) */}
+                  {/* Número de Série no Topo Esquerdo (Desktop) */}
                   <div className="hidden md:block absolute top-4 left-4 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <span className="font-mono text-[10px] tracking-[0.2em] text-white/80 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-xs border border-white/10">
+                    <span className="text-[10px] font-bold tracking-widest text-white/80 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-xs border border-white/10">
                       {seriesNumber}
                     </span>
                   </div>
 
-                  {/* Desktop: Gradiente Scrim Inferior Cinematográfico (Imagem Desobstruída) */}
+                  {/* Desktop: Gradiente Scrim Inferior (Imagem Desobstruída) */}
                   <div className="hidden md:flex absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex-col justify-end p-6 z-20 pointer-events-none">
                     <div className="transform translate-y-3 group-hover:translate-y-0 transition-transform duration-500 ease-out">
-                      <span className="font-sans text-[10px] uppercase tracking-[0.28em] text-neutral-300 font-medium block mb-1">
-                        {item.isMockVideoCategory ? 'Produção Audiovisual' : 'Coleção Autoral'}
+                      <span className="text-[10px] uppercase tracking-widest text-neutral-300 font-semibold block mb-1">
+                        {item.isMockVideoCategory ? 'Produção Audiovisual' : 'Galeria de Trabalhos'}
                       </span>
                       <div className="flex items-end justify-between gap-4">
-                        <h2 className="text-white font-serif text-2xl lg:text-3xl tracking-wide font-normal leading-tight">
+                        <h2 className="text-white text-xl lg:text-2xl font-extrabold tracking-widest uppercase leading-tight">
                           {item.title}
                         </h2>
-                        <span className="font-sans text-white/90 text-[11px] uppercase tracking-[0.22em] font-semibold flex items-center gap-1.5 shrink-0 pb-0.5">
-                          Explorar <span className="text-sm leading-none transition-transform duration-300 group-hover:translate-x-1">&rarr;</span>
+                        <span className="text-white/90 text-xs uppercase tracking-widest font-bold flex items-center gap-1.5 shrink-0 pb-0.5">
+                          Ver <span className="text-sm leading-none transition-transform duration-300 group-hover:translate-x-1">&rarr;</span>
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Mobile: Barra Translúcida Editorial na Base */}
+                  {/* Mobile: Barra Translúcida na Base */}
                   <div className="md:hidden absolute bottom-3 left-3 right-3 z-20 pointer-events-none">
                     <div className="flex items-center justify-between bg-black/45 backdrop-blur-md border border-white/15 px-4 py-2.5 rounded-xs shadow-lg">
                       <div className="flex items-center gap-2.5">
-                        <span className="font-mono text-[9px] text-white/60 tracking-widest">
+                        <span className="text-[10px] font-bold text-white/60 tracking-widest">
                           {seriesNumber}
                         </span>
-                        <span className="text-white text-xs font-medium uppercase tracking-[0.2em]">
+                        <span className="text-white text-xs font-extrabold uppercase tracking-widest">
                           {item.title}
                         </span>
                       </div>

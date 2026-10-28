@@ -7,7 +7,7 @@ export const revalidate = 0;
 
 export default async function ClientAlbumPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-
+  
   const query = `*[_type == "clientAlbum" && slug.current == $slug][0] {
     title,
     "slug": slug.current,
@@ -26,20 +26,13 @@ export default async function ClientAlbumPage({ params }: { params: Promise<{ sl
   if (!album) notFound();
 
   return (
-    <div className="w-full pt-6">
-      <div className="text-center space-y-2 mb-12">
-        <Link
-          href="/"
-          className="font-sans text-neutral-400 hover:text-black uppercase tracking-[0.25em] text-[11px] font-semibold transition-colors inline-block mb-1"
-        >
+    <div className="w-full pt-8">
+      <div className="text-center space-y-4 mb-10">
+        <Link href="/" className="text-gray-400 hover:text-black uppercase tracking-widest text-xs transition-colors inline-block">
           &larr; Voltar ao Portfólio
         </Link>
-        <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl font-normal tracking-tight text-neutral-950">
-          {album.title}
-        </h1>
-        <p className="font-sans text-[11px] tracking-[0.28em] uppercase text-neutral-400 font-medium">
-          Área Exclusiva de Seleção do Cliente
-        </p>
+        <h1 className="text-3xl md:text-5xl font-extrabold tracking-tighter uppercase">{album.title}</h1>
+        <p className="text-xs tracking-widest uppercase text-gray-400">Área Exclusiva do Cliente</p>
       </div>
 
       {/* O componente Client lida com a Senha e com a Seleção */}

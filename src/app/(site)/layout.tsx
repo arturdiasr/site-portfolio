@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Outfit, Cormorant_Garamond } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "../globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -8,20 +8,10 @@ import ScrollToTop from "@/components/ScrollToTop";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import SmoothScroll from "@/components/SmoothScroll";
 
-// Fonte "Outfit" traz um ar moderno, limpo e geométrico para UI e navegação
+// Fonte "Outfit" traz um ar muito moderno, jovem e geométrico
 const mainFont = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",
-  display: "swap",
-});
-
-// Fonte "Cormorant Garamond" adiciona contraste editorial sofisticado para títulos e citações
-const serifFont = Cormorant_Garamond({
-  subsets: ["latin"],
-  variable: "--font-cormorant",
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -75,7 +65,7 @@ export default function SiteLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className={`${mainFont.variable} ${serifFont.variable} ${mainFont.className} font-sans antialiased min-h-screen flex flex-col text-black relative`}>
+    <div className={`${mainFont.className} antialiased min-h-screen flex flex-col text-black relative`}>
       <SmoothScroll />
       <AnimatedBackground />
       <Header />
