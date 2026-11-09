@@ -14,16 +14,32 @@ export default async function ClientAlbumPage({ params }: { params: Promise<{ sl
     password,
     requireEmail,
     coverImage,
-    "images": images[] {
+    "images": coalesce(images, [])[] {
+      "_type": _type,
+      "mimeType": asset->mimeType,
       "url": asset->url,
       "originalFilename": asset->originalFilename,
       "aspectRatio": asset->metadata.dimensions.aspectRatio
+    },
+    "videos": coalesce(videos, [])[] {
+      "_type": "video",
+      "mimeType": asset->mimeType,
+      "url": asset->url,
+      "originalFilename": asset->originalFilename
     }
   }`;
 
-  const album = await client.fetch(query, { slug });
+  const rawAlbum = await client.fetch(query, { slug });
 
-  if (!album) notFound();
+  if (!rawAlbum) notFound();
+
+  const album = {
+    ...rawAlbum,
+    images: [
+      ...(rawAlbum.images || []),
+      ...(rawAlbum.videos || []),
+    ].filter((item: any) => Boolean(item?.url)),
+  };
 
   return (
     <div className="w-full pt-8">

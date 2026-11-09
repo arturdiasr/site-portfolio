@@ -58,11 +58,33 @@ export const clientAlbumType = defineType({
     }),
     defineField({
       name: 'images',
-      title: 'Fotos para Escolha',
-      description: 'Arraste as fotos aqui. O sistema preserva o nome original do arquivo automaticamente (ex: DSC_001.JPG).',
+      title: 'Fotos e Vídeos para Escolha',
+      description: 'Arraste fotos ou vídeos (ex: MP4 / GIFs em 1080p) aqui. O sistema preserva o nome original do arquivo automaticamente (ex: DSC_001.JPG, VID_001.MP4).',
       type: 'array',
       options: { layout: 'grid' },
-      of: [{ type: 'image' }],
+      of: [
+        { type: 'image', title: 'Foto' },
+        {
+          type: 'file',
+          name: 'video',
+          title: 'Vídeo / GIF 1080p',
+          options: { accept: 'video/*' },
+        },
+      ],
+    }),
+    defineField({
+      name: 'videos',
+      title: 'Vídeos / GIFs em 1080p (Opcional)',
+      description: 'Você pode arrastar os vídeos diretamente no campo de fotos acima ou separadamente aqui (MP4, MOV, WebM). Eles aparecerão normalmente na galeria de aprovação para o cliente favoritar.',
+      type: 'array',
+      of: [
+        {
+          type: 'file',
+          name: 'video',
+          title: 'Vídeo / GIF 1080p',
+          options: { accept: 'video/*' },
+        },
+      ],
     }),
   ],
 })

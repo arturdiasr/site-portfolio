@@ -5,20 +5,34 @@ import { motion, AnimatePresence } from 'motion/react';
 import { urlForImage } from "@/sanity/lib/image";
 import MasonryGrid from '@/components/MasonryGrid';
 
+type ClientAlbumItem = {
+  _type?: string;
+  mimeType?: string;
+  url: string;
+  originalFilename: string;
+  aspectRatio?: number;
+};
+
 type ClientAlbumData = {
   title: string;
   slug: string;
   password: string;
   requireEmail?: boolean;
   coverImage: any;
-  images: {
-    url: string;
-    originalFilename: string;
-    aspectRatio: number;
-  }[];
+  images: ClientAlbumItem[];
 };
 
 const stripExt = (name?: string) => String(name || '').replace(/\.[^/.]+$/, '');
+
+const isVideoItem = (item?: ClientAlbumItem) => {
+  if (!item) return false;
+  return (
+    item._type === 'video' ||
+    item._type === 'file' ||
+    Boolean(item.mimeType?.startsWith('video/')) ||
+    /\.(mp4|mov|webm|m4v|ogg)$/i.test(item.originalFilename || item.url || '')
+  );
+};
 
 export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) {
   // Não aplica exigência de e-mail para a galeria que já existia nem quando desativado
@@ -362,9 +376,20 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
                   className="flex items-center gap-4 group bg-neutral-50/80 p-2.5 rounded-xs border border-neutral-100"
                 >
                   {img ? (
-                    <img src={img.url} alt={filename} className="w-14 h-14 object-cover rounded-xs shadow-xs" />
+                    isVideoItem(img) ? (
+                      <video
+                        src={img.url}
+                        muted
+                        loop
+                        autoPlay
+                        playsInline
+                        className="w-14 h-14 object-cover rounded-xs shadow-xs bg-neutral-900 shrink-0"
+                      />
+                    ) : (
+                      <img src={img.url} alt={filename} className="w-14 h-14 object-cover rounded-xs shadow-xs shrink-0" />
+                    )
                   ) : (
-                    <div className="w-14 h-14 bg-neutral-200 rounded-xs" />
+                    <div className="w-14 h-14 bg-neutral-200 rounded-xs shrink-0" />
                   )}
                   <span className="font-mono text-xs tracking-wider flex-1 truncate text-neutral-700">
                     {filename}
@@ -438,17 +463,34 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
               </button>
             </div>
 
-            <motion.img
-              key={selectedIndex}
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.2 }}
-              src={album.images[selectedIndex].url}
-              alt={album.images[selectedIndex].originalFilename}
-              className="max-w-full max-h-[82vh] object-contain select-none shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
+            {isVideoItem(album.images[selectedIndex]) ? (
+              <motion.video
+                key={`video-${selectedIndex}`}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.2 }}
+                src={album.images[selectedIndex].url}
+                controls
+                autoPlay
+                loop
+                playsInline
+                className="max-w-full max-h-[82vh] object-contain select-none shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <motion.img
+                key={selectedIndex}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.2 }}
+                src={album.images[selectedIndex].url}
+                alt={album.images[selectedIndex].originalFilename}
+                className="max-w-full max-h-[82vh] object-contain select-none shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
 
             <button
               className="absolute left-3 md:left-8 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-white/70 hover:text-white bg-black/40 hover:bg-white/15 backdrop-blur-sm border border-white/10 rounded-full transition-all z-[120] cursor-pointer"
@@ -508,8 +550,12 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
                 </svg>
                 <span>
                   {selectedFiles.includes(stripExt(album.images[selectedIndex].originalFilename))
-                    ? 'Selecionada'
-                    : 'Selecionar Foto'}
+                    ? isVideoItem(album.images[selectedIndex])
+                      ? 'Selecionado'
+                      : 'Selecionada'
+                    : isVideoItem(album.images[selectedIndex])
+                      ? 'Selecionar Vídeo'
+                      : 'Selecionar Foto'}
                 </span>
               </button>
             </div>
@@ -517,13 +563,14 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
         )}
       </AnimatePresence>
 
-      {/* Grade de Fotos */}
+      {/* Grade de Fotos e Vídeos */}
       <MasonryGrid>
         {album.images?.map((img, index) => {
           const fileKey = stripExt(img.originalFilename);
           const isSelected = selectedFiles.includes(fileKey);
+          const isVideo = isVideoItem(img);
           const isLandscape = img.aspectRatio && img.aspectRatio > 1;
-          const aspectClass = isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
+          const aspectClass = isVideo ? "min-h-[180px]" : isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
 
           return (
             <div
@@ -531,14 +578,37 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
               className={`relative break-inside-avoid mb-6 w-full block overflow-hidden bg-neutral-100 shadow-sm hover:shadow-xl transition-all duration-300 group cursor-zoom-in ${aspectClass}`}
               onClick={() => setSelectedIndex(index)}
             >
-              <img
-                src={img.url}
-                alt={fileKey}
-                className={`w-full h-full object-cover transition-all duration-500 ${
-                  isSelected ? 'brightness-90 scale-[0.985]' : 'group-hover:scale-[1.02]'
-                }`}
-                loading="lazy"
-              />
+              {isVideo ? (
+                <video
+                  src={img.url}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className={`w-full h-auto block object-cover transition-all duration-500 ${
+                    isSelected ? 'brightness-90 scale-[0.985]' : 'group-hover:scale-[1.02]'
+                  }`}
+                />
+              ) : (
+                <img
+                  src={img.url}
+                  alt={fileKey}
+                  className={`w-full h-full object-cover transition-all duration-500 ${
+                    isSelected ? 'brightness-90 scale-[0.985]' : 'group-hover:scale-[1.02]'
+                  }`}
+                  loading="lazy"
+                />
+              )}
+
+              {isVideo && !isSelected && (
+                <div className="absolute top-3.5 left-3.5 bg-black/55 backdrop-blur-sm text-white text-[9px] uppercase tracking-[0.2em] font-semibold px-2.5 py-1 flex items-center gap-1.5 pointer-events-none z-10">
+                  <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                  Vídeo
+                </div>
+              )}
 
               {/* Botão Coração (Sempre acessível no mobile e visível no hover no desktop) */}
               <button
@@ -573,14 +643,14 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
                 {fileKey || 'S/ NOME'}
               </div>
 
-              {/* Destaque Editorial de Foto Selecionada (Substitui a borda verde saturada) */}
+              {/* Destaque Editorial de Foto/Vídeo Selecionado (Substitui a borda verde saturada) */}
               {isSelected && (
                 <div className="absolute inset-0 ring-2 ring-black/85 ring-inset pointer-events-none transition-all duration-300">
                   <div className="absolute top-3.5 left-3.5 bg-black text-white text-[9px] uppercase tracking-[0.22em] font-bold px-2.5 py-1.5 flex items-center gap-1.5 shadow-md">
                     <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
-                    Selecionada
+                    {isVideo ? 'Selecionado' : 'Selecionada'}
                   </div>
                 </div>
               )}

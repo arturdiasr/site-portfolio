@@ -14,11 +14,23 @@ type SelectionItem = {
 }
 
 type AlbumImageMeta = {
+  _type?: string
+  mimeType?: string
   filename?: string
   url?: string
 }
 
 const stripExt = (name: string) => String(name || '').replace(/\.[^/.]+$/, '')
+
+const isVideoMeta = (item?: AlbumImageMeta) => {
+  if (!item) return false
+  return (
+    item._type === 'video' ||
+    item._type === 'file' ||
+    Boolean(item.mimeType?.startsWith('video/')) ||
+    /\.(mp4|mov|webm|m4v|ogg)$/i.test(item.filename || item.url || '')
+  )
+}
 
 export function ClientSelectionsViewer(_props: StringInputProps) {
   const client = useClient({ apiVersion: '2024-01-01' })
@@ -35,7 +47,7 @@ export function ClientSelectionsViewer(_props: StringInputProps) {
     if (!currentSlug) return
     setLoading(true)
     try {
-      const [selRes, imgRes] = await Promise.all([
+      const [selRes, mediaRes] = await Promise.all([
         client.fetch<SelectionItem[]>(
           `*[_type == "clientSelection" && albumSlug == $slug] | order(lastActivityAt desc) {
             _id,
@@ -50,17 +62,35 @@ export function ClientSelectionsViewer(_props: StringInputProps) {
           }`,
           { slug: currentSlug }
         ),
-        client.fetch<AlbumImageMeta[]>(
-          `*[_type == "clientAlbum" && slug.current == $slug][0].images[]{
-            "filename": asset->originalFilename,
-            "url": asset->url + "?w=160&h=160&fit=crop&auto=format&q=70"
+        client.fetch<{ images?: AlbumImageMeta[]; videos?: AlbumImageMeta[] }>(
+          `*[_type == "clientAlbum" && slug.current == $slug][0]{
+            "images": coalesce(images, [])[]{
+              "_type": _type,
+              "mimeType": asset->mimeType,
+              "filename": asset->originalFilename,
+              "url": select(
+                _type == "image" => asset->url + "?w=160&h=160&fit=crop&auto=format&q=70",
+                asset->url
+              )
+            },
+            "videos": coalesce(videos, [])[]{
+              "_type": "video",
+              "mimeType": asset->mimeType,
+              "filename": asset->originalFilename,
+              "url": asset->url
+            }
           }`,
           { slug: currentSlug }
         ),
       ])
 
+      const combinedMedia = [
+        ...(mediaRes?.images || []),
+        ...(mediaRes?.videos || []),
+      ].filter((m) => Boolean(m?.url))
+
       setSelections(selRes || [])
-      setAlbumImages(imgRes || [])
+      setAlbumImages(combinedMedia)
     } catch (err) {
       console.error('Erro ao buscar seleções no Studio:', err)
     } finally {
@@ -318,11 +348,22 @@ export function ClientSelectionsViewer(_props: StringInputProps) {
                             title={filename}
                           >
                             {matched?.url ? (
-                              <img
-                                src={matched.url}
-                                alt={filename}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              />
+                              isVideoMeta(matched) ? (
+                                <video
+                                  src={matched.url}
+                                  muted
+                                  loop
+                                  autoPlay
+                                  playsInline
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              ) : (
+                                <img
+                                  src={matched.url}
+                                  alt={filename}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              )
                             ) : (
                               <span style={{ fontSize: 9, color: '#64748b', textAlign: 'center', padding: 2, wordBreak: 'break-all' }}>
                                 {filename}

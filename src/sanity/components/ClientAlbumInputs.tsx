@@ -54,15 +54,18 @@ export function WhatsappMessageInput(_props: StringInputProps) {
   const slug = useFormValue(['slug']) as { current?: string } | undefined
   const password = useFormValue(['password']) as string | undefined
   const images = useFormValue(['images']) as unknown[] | undefined
+  const videos = useFormValue(['videos']) as unknown[] | undefined
   const [copied, setCopied] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
   const [copiedName, setCopiedName] = useState(false)
   const [copiedPassword, setCopiedPassword] = useState(false)
 
-  if (!slug?.current || !password || !images || images.length === 0) {
+  const hasMedia = (images && images.length > 0) || (videos && videos.length > 0)
+
+  if (!slug?.current || !password || !hasMedia) {
     return (
       <p style={{ color: '#888', fontSize: 13 }}>
-        A mensagem para o cliente aparecerá aqui assim que o álbum tiver link, senha e fotos.
+        A mensagem para o cliente aparecerá aqui assim que o álbum tiver link, senha e fotos/vídeos.
       </p>
     )
   }
