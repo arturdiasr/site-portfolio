@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { urlForImage } from "@/sanity/lib/image";
-import MasonryGrid from '@/components/MasonryGrid';
 
 type ClientAlbumItem = {
   _type?: string;
@@ -57,6 +56,141 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [hasMinimizedSidebar, setHasMinimizedSidebar] = useState(false);
   const touchStartX = useRef<number | null>(null);
+
+  // Estados para controle de zoom / tamanho da grade de fotos
+  const gridContainerRef = useRef<HTMLDivElement | null>(null);
+  const [gridWidth, setGridWidth] = useState(0);
+  const [windowWidth, setWindowWidth] = useState(1280);
+  const [isGridReady, setIsGridReady] = useState(false);
+  // Nível de zoom (1 = menor foto / mais fotos na tela, max = maior foto / menos colunas)
+  const [zoomLevel, setZoomLevel] = useState<number>(4);
+  const [videoRatios, setVideoRatios] = useState<Record<number, number>>({});
+
+  // Colunas disponíveis conforme tamanho da tela (do menor zoom = mais fotos, ao maior zoom = fotos grandes)
+  const availableCols = useMemo(() => {
+    if (windowWidth < 640) return [3, 2, 1]; // Mobile: 3, 2 ou 1 foto por linha
+    if (windowWidth < 1024) return [4, 3, 2, 1]; // Tablet: 4, 3, 2 ou 1 por linha
+    return [6, 5, 4, 3, 2, 1]; // Desktop: 6, 5, 4, 3, 2 ou 1 por linha
+  }, [windowWidth]);
+
+  const maxZoomLevel = availableCols.length;
+  const clampedZoomLevel = Math.min(Math.max(1, zoomLevel), maxZoomLevel);
+  const activeCols = availableCols[clampedZoomLevel - 1] || 3;
+
+  // Mede a largura da grade e da janela para recalcular posições suavemente
+  useEffect(() => {
+    if (!isClient || !isAuthenticated) return;
+
+    const handleResize = () => {
+      const w = window.innerWidth;
+      setWindowWidth(w);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+
+    const savedZoom = localStorage.getItem(`zoom_${album.slug}`);
+    if (savedZoom) {
+      const parsed = parseInt(savedZoom, 10);
+      if (!isNaN(parsed)) setZoomLevel(parsed);
+    } else {
+      // Padrão inicial equilibrado (3 colunas no desktop, 2 no tablet, 1 ou 2 no mobile)
+      const w = window.innerWidth;
+      if (w < 640) setZoomLevel(2); // 2 colunas no mobile por padrão (ou ajustável entre 1 e 3)
+      else if (w < 1024) setZoomLevel(3); // 2 colunas no tablet
+      else setZoomLevel(4); // 3 colunas no desktop
+    }
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isClient, isAuthenticated, album.slug]);
+
+  useEffect(() => {
+    if (!isClient || !isAuthenticated || !gridContainerRef.current) return;
+    const el = gridContainerRef.current;
+
+    const measure = () => {
+      const w = el.clientWidth;
+      if (w > 0) setGridWidth(w);
+    };
+    measure();
+
+    const ro = new ResizeObserver(() => {
+      measure();
+    });
+    ro.observe(el);
+
+    const raf = requestAnimationFrame(() => {
+      setIsGridReady(true);
+    });
+
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(raf);
+    };
+  }, [isClient, isAuthenticated]);
+
+  const handleZoomChange = (newLevel: number) => {
+    const next = Math.min(Math.max(1, newLevel), maxZoomLevel);
+    setZoomLevel(next);
+    if (isClient) {
+      localStorage.setItem(`zoom_${album.slug}`, String(next));
+    }
+  };
+
+  // Cálculo do layout Masonry em container único para transição fluida com CSS transform
+  const masonryLayout = useMemo(() => {
+    const items = album.images || [];
+    if (gridWidth <= 0 || items.length === 0) {
+      return { positions: [], totalHeight: 0, colWidth: 300, gap: 20 };
+    }
+
+    const gap =
+      activeCols >= 5
+        ? 10
+        : activeCols === 4
+          ? 14
+          : activeCols === 3
+            ? gridWidth < 640
+              ? 8
+              : 20
+            : activeCols === 2
+              ? gridWidth < 640
+                ? 10
+                : 24
+              : 24;
+
+    const rawColWidth = (gridWidth - gap * (activeCols - 1)) / activeCols;
+    const colWidth = activeCols === 1 ? Math.min(rawColWidth, 760) : rawColWidth;
+    const singleColOffsetX = activeCols === 1 ? (gridWidth - colWidth) / 2 : 0;
+
+    const colHeights = new Array(activeCols).fill(0);
+    const positions = items.map((img, idx) => {
+      const isVid = isVideoItem(img);
+      const ratio = isVid
+        ? videoRatios[idx] || (img.aspectRatio ? (img.aspectRatio > 1 ? 1.5 : 0.8) : 0.8)
+        : img.aspectRatio && img.aspectRatio > 1
+          ? 1.5
+          : 0.8;
+
+      const itemHeight = colWidth / ratio;
+
+      // Escolhe a coluna mais curta para manter a grade equilibrada
+      let minCol = 0;
+      for (let c = 1; c < activeCols; c++) {
+        if (colHeights[c] < colHeights[minCol] - 1) {
+          minCol = c;
+        }
+      }
+
+      const x = activeCols === 1 ? singleColOffsetX : minCol * (colWidth + gap);
+      const y = colHeights[minCol];
+      colHeights[minCol] += itemHeight + gap;
+
+      return { x, y, width: colWidth, height: itemHeight };
+    });
+
+    const totalHeight = Math.max(0, ...colHeights) - (items.length > 0 ? gap : 0);
+    return { positions, totalHeight, colWidth, gap };
+  }, [album.images, gridWidth, activeCols, videoRatios]);
 
   // Usamos localStorage para manter o estado
   useEffect(() => {
@@ -563,19 +697,111 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
         )}
       </AnimatePresence>
 
-      {/* Grade de Fotos e Vídeos */}
-      <MasonryGrid>
+      {/* Barra de Controle de Visualização / Zoom da Grade (Sticky) */}
+      <div className="sticky top-4 z-30 mb-8 flex justify-center pointer-events-none">
+        <div className="pointer-events-auto bg-white/90 backdrop-blur-md border border-neutral-200/90 shadow-[0_8px_30px_rgb(0,0,0,0.06)] px-4 py-2.5 md:px-6 md:py-3 rounded-full flex items-center gap-3 md:gap-4 transition-all">
+          <span className="hidden sm:inline-block text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 select-none">
+            Tamanho
+          </span>
+
+          {/* Botão Lupa Diminuir (Mais fotos na tela) */}
+          <button
+            type="button"
+            onClick={() => handleZoomChange(clampedZoomLevel - 1)}
+            disabled={clampedZoomLevel <= 1}
+            className="p-1.5 rounded-full text-neutral-600 hover:text-black hover:bg-neutral-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer disabled:cursor-not-allowed"
+            title="Diminuir tamanho (ver mais fotos na tela)"
+            aria-label="Diminuir tamanho das fotos"
+          >
+            <svg className="w-4 h-4 md:w-[18px] md:h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+              <circle cx="11" cy="11" r="7" />
+              <path strokeLinecap="round" d="M20 20l-3.5-3.5M8 11h6" />
+            </svg>
+          </button>
+
+          {/* Slider Suave */}
+          <div className="flex items-center w-28 sm:w-36 md:w-44">
+            <input
+              type="range"
+              min={1}
+              max={maxZoomLevel}
+              step={1}
+              value={clampedZoomLevel}
+              onChange={(e) => handleZoomChange(parseInt(e.target.value, 10))}
+              className="w-full h-1.5 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-black focus:outline-none"
+              aria-label="Controlar tamanho das fotos na grade"
+            />
+          </div>
+
+          {/* Botão Lupa Aumentar (Fotos maiores) */}
+          <button
+            type="button"
+            onClick={() => handleZoomChange(clampedZoomLevel + 1)}
+            disabled={clampedZoomLevel >= maxZoomLevel}
+            className="p-1.5 rounded-full text-neutral-600 hover:text-black hover:bg-neutral-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer disabled:cursor-not-allowed"
+            title="Aumentar tamanho das fotos"
+            aria-label="Aumentar tamanho das fotos"
+          >
+            <svg className="w-4 h-4 md:w-[18px] md:h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+              <circle cx="11" cy="11" r="7" />
+              <path strokeLinecap="round" d="M20 20l-3.5-3.5M11 8v6M8 11h6" />
+            </svg>
+          </button>
+
+          <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-400 border-l border-neutral-200 pl-3 select-none min-w-[62px] text-center">
+            {activeCols} {activeCols === 1 ? 'coluna' : 'colunas'}
+          </span>
+        </div>
+      </div>
+
+      {/* Grade de Fotos e Vídeos com Transição Fluida */}
+      <div
+        ref={gridContainerRef}
+        className={`relative w-full ${
+          isGridReady ? 'transition-[height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]' : ''
+        }`}
+        style={
+          gridWidth > 0
+            ? { height: `${Math.max(masonryLayout.totalHeight, 200)}px` }
+            : undefined
+        }
+      >
         {album.images?.map((img, index) => {
           const fileKey = stripExt(img.originalFilename);
           const isSelected = selectedFiles.includes(fileKey);
           const isVideo = isVideoItem(img);
           const isLandscape = img.aspectRatio && img.aspectRatio > 1;
-          const aspectClass = isVideo ? "min-h-[180px]" : isLandscape ? "aspect-[3/2]" : "aspect-[4/5]";
+          const pos = masonryLayout.positions[index];
+          const isCompactCard = masonryLayout.colWidth < 210;
+
+          const fallbackAspectClass = isVideo
+            ? 'min-h-[180px]'
+            : isLandscape
+              ? 'aspect-[3/2]'
+              : 'aspect-[4/5]';
 
           return (
             <div
-              key={index}
-              className={`relative break-inside-avoid mb-6 w-full block overflow-hidden bg-neutral-100 shadow-sm hover:shadow-xl transition-all duration-300 group cursor-zoom-in ${aspectClass}`}
+              key={img.url || index}
+              style={
+                pos
+                  ? {
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: `${pos.width}px`,
+                      height: `${pos.height}px`,
+                      transform: `translate3d(${pos.x}px, ${pos.y}px, 0)`,
+                    }
+                  : undefined
+              }
+              className={`${
+                pos ? '' : `relative mb-6 w-full ${fallbackAspectClass}`
+              } block overflow-hidden bg-neutral-100 shadow-sm hover:shadow-xl group cursor-zoom-in ${
+                isGridReady
+                  ? 'transition-[transform,width,height,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[transform,width,height]'
+                  : 'transition-shadow duration-300'
+              }`}
               onClick={() => setSelectedIndex(index)}
             >
               {isVideo ? (
@@ -586,7 +812,18 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
                   muted
                   playsInline
                   preload="metadata"
-                  className={`w-full h-auto block object-cover transition-all duration-500 ${
+                  onLoadedMetadata={(e) => {
+                    const v = e.currentTarget;
+                    if (v.videoWidth && v.videoHeight) {
+                      const r = v.videoWidth / v.videoHeight;
+                      setVideoRatios((prev) =>
+                        prev[index] && Math.abs(prev[index] - r) < 0.01
+                          ? prev
+                          : { ...prev, [index]: r }
+                      );
+                    }
+                  }}
+                  className={`w-full h-full block object-cover transition-all duration-500 ${
                     isSelected ? 'brightness-90 scale-[0.985]' : 'group-hover:scale-[1.02]'
                   }`}
                 />
@@ -602,17 +839,23 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
               )}
 
               {isVideo && !isSelected && (
-                <div className="absolute top-3.5 left-3.5 bg-black/55 backdrop-blur-sm text-white text-[9px] uppercase tracking-[0.2em] font-semibold px-2.5 py-1 flex items-center gap-1.5 pointer-events-none z-10">
+                <div
+                  className={`absolute ${
+                    isCompactCard ? 'top-2 left-2 px-1.5 py-0.5 text-[8px]' : 'top-3.5 left-3.5 px-2.5 py-1 text-[9px]'
+                  } bg-black/55 backdrop-blur-sm text-white uppercase tracking-[0.2em] font-semibold flex items-center gap-1 pointer-events-none z-10`}
+                >
                   <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
                   </svg>
-                  Vídeo
+                  {!isCompactCard && 'Vídeo'}
                 </div>
               )}
 
               {/* Botão Coração (Sempre acessível no mobile e visível no hover no desktop) */}
               <button
-                className={`absolute top-3.5 right-3.5 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 z-10 cursor-pointer ${
+                className={`absolute ${
+                  isCompactCard ? 'top-2 right-2 w-8 h-8' : 'top-3.5 right-3.5 w-11 h-11'
+                } rounded-full flex items-center justify-center transition-all duration-300 z-10 cursor-pointer ${
                   isSelected
                     ? 'bg-white opacity-100 shadow-lg scale-105'
                     : 'bg-black/35 opacity-90 md:opacity-0 md:group-hover:opacity-100 hover:bg-black/65 text-white backdrop-blur-sm'
@@ -621,11 +864,13 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
                   e.stopPropagation();
                   toggleSelection(img.originalFilename);
                 }}
-                title={isSelected ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                title={isSelected ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
               >
                 <svg
-                  className={`w-5 h-5 ${isSelected ? 'text-red-500 fill-red-500' : 'text-white'}`}
-                  fill={isSelected ? "currentColor" : "none"}
+                  className={`${isCompactCard ? 'w-4 h-4' : 'w-5 h-5'} ${
+                    isSelected ? 'text-red-500 fill-red-500' : 'text-white'
+                  }`}
+                  fill={isSelected ? 'currentColor' : 'none'}
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -639,25 +884,33 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
               </button>
 
               {/* Nome do Arquivo Discreto na Base */}
-              <div className="absolute bottom-3 left-3 bg-black/55 backdrop-blur-sm text-white font-mono text-[10px] px-2.5 py-1 tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <div
+                className={`absolute ${
+                  isCompactCard ? 'bottom-1.5 left-1.5 px-1.5 py-0.5 text-[8px]' : 'bottom-3 left-3 px-2.5 py-1 text-[10px]'
+                } bg-black/55 backdrop-blur-sm text-white font-mono tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none truncate max-w-[85%]`}
+              >
                 {fileKey || 'S/ NOME'}
               </div>
 
-              {/* Destaque Editorial de Foto/Vídeo Selecionado (Substitui a borda verde saturada) */}
+              {/* Destaque Editorial de Foto/Vídeo Selecionado */}
               {isSelected && (
                 <div className="absolute inset-0 ring-2 ring-black/85 ring-inset pointer-events-none transition-all duration-300">
-                  <div className="absolute top-3.5 left-3.5 bg-black text-white text-[9px] uppercase tracking-[0.22em] font-bold px-2.5 py-1.5 flex items-center gap-1.5 shadow-md">
-                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div
+                    className={`absolute ${
+                      isCompactCard ? 'top-2 left-2 px-1.5 py-1 text-[8px]' : 'top-3.5 left-3.5 px-2.5 py-1.5 text-[9px]'
+                    } bg-black text-white uppercase tracking-[0.22em] font-bold flex items-center gap-1.5 shadow-md`}
+                  >
+                    <svg className="w-3 h-3 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
-                    {isVideo ? 'Selecionado' : 'Selecionada'}
+                    {!isCompactCard && (isVideo ? 'Selecionado' : 'Selecionada')}
                   </div>
                 </div>
               )}
             </div>
           );
         })}
-      </MasonryGrid>
+      </div>
 
       {/* Barra Inferior Fixa */}
       <div
