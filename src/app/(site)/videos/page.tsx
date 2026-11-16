@@ -1,5 +1,5 @@
 import { client } from "@/sanity/lib/client";
-import { urlForImage } from "@/sanity/lib/image";
+import { imageThumb } from "@/sanity/lib/image";
 import Link from "next/link";
 import VideoCard from "@/components/VideoCard";
 
@@ -42,7 +42,7 @@ export default async function VideosPage() {
                 <VideoCard 
                   video={{
                     ...video,
-                    coverImage: video.coverImage ? urlForImage(video.coverImage).url() : ''
+                    coverImage: video.coverImage ? imageThumb(video.coverImage) : ''
                   }} 
                   aspectClass={aspectClass}
                 />

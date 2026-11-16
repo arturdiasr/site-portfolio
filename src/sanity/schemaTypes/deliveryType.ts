@@ -28,6 +28,13 @@ export const deliveryType = defineType({
       validation: (rule) => rule.required().uri({ scheme: ['https', 'http'] }),
     }),
     defineField({
+      name: 'coverImage',
+      title: 'Foto de Capa Comemorativa (Opcional)',
+      description: 'Se preenchida, exibe um banner cinematográfico na tela de entrega do cliente.',
+      type: 'image',
+      options: { hotspot: true },
+    }),
+    defineField({
       name: 'deliveryMessage',
       title: 'Mensagem para o Cliente (WhatsApp) — privado',
       description: 'Visível só para você. Copie e envie ao cliente.',

@@ -1,5 +1,5 @@
 import { client } from "@/sanity/lib/client";
-import { urlForImage } from "@/sanity/lib/image";
+import { imageThumb, imageCarousel } from "@/sanity/lib/image";
 import { Link } from "next-view-transitions";
 import HomeMasonry from "@/components/HomeMasonry";
 import LatestWorksCarousel from "@/components/LatestWorksCarousel";
@@ -10,7 +10,8 @@ export const revalidate = 0;
 function extractUniqueRotationUrls(
   coverPhoto: any,
   favoritePhotos: any[] = [],
-  fallbackPhotos: any[] = []
+  fallbackPhotos: any[] = [],
+  mode: "thumb" | "carousel" = "thumb"
 ): string[] {
   const cover = coverPhoto ? [coverPhoto] : [];
   const favs = (favoritePhotos || []).filter(Boolean);
@@ -30,7 +31,7 @@ function extractUniqueRotationUrls(
     if (ref) seenRefs.add(ref);
     
     try {
-      const url = urlForImage(item).url();
+      const url = mode === "carousel" ? imageCarousel(item) : imageThumb(item);
       if (url && !uniqueUrls.includes(url)) {
         uniqueUrls.push(url);
       }
@@ -76,7 +77,8 @@ export default async function Portfolio() {
     const rotationImages = extractUniqueRotationUrls(
       cat.categoryCover,
       favCandidates,
-      fallbackCandidates
+      fallbackCandidates,
+      "thumb"
     );
 
     return {
@@ -98,7 +100,7 @@ export default async function Portfolio() {
 
   // Cria um card de categoria "Vídeos" no final usando a capa do primeiro vídeo
   if (videos.length > 0) {
-    const videoCoverUrl = videos[0].videoCover ? urlForImage(videos[0].videoCover).url() : '';
+    const videoCoverUrl = videos[0].videoCover ? imageThumb(videos[0].videoCover) : '';
     items.push({
       _id: 'videos',
       _type: 'category',
@@ -140,14 +142,15 @@ export default async function Portfolio() {
     const rotationImages = extractUniqueRotationUrls(
       gal.coverImage,
       favCandidates,
-      gal.fallbackImages || []
+      gal.fallbackImages || [],
+      "carousel"
     );
     
     return {
       _id: gal._id,
       title: gal.title,
       workDate: formattedDate,
-      coverImageUrl: gal.coverImage ? urlForImage(gal.coverImage).url() : '',
+      coverImageUrl: gal.coverImage ? imageCarousel(gal.coverImage) : '',
       rotationImages
     };
   });
@@ -158,6 +161,22 @@ export default async function Portfolio() {
 
   return (
     <div className="w-full">
+      {/* Manifesto de Abertura (Sub-Hero Editorial) */}
+      <section className="pt-1 pb-10 md:pb-12 text-center max-w-2xl mx-auto px-4">
+        <p className="text-xs sm:text-sm md:text-base text-neutral-600 leading-relaxed font-medium tracking-wide mb-3">
+          Olhar autoral sobre música, arquitetura e a intensidade de cada instante.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-[0.25em] text-neutral-400 font-semibold">
+          <span>Brasília, DF</span>
+          <span aria-hidden="true">•</span>
+          <span>Shows & Eventos</span>
+          <span aria-hidden="true">•</span>
+          <span>Arquitetura</span>
+          <span aria-hidden="true">•</span>
+          <span>Ensaios</span>
+        </div>
+      </section>
+
       {items.length === 0 ? (
         <p className="text-center text-gray-500 py-20">Nenhum item encontrado. Crie categorias ou vídeos no Painel /studio.</p>
       ) : (

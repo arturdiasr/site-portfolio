@@ -11,9 +11,13 @@ function Star({ filled, className = '' }: { filled: boolean; className?: string 
 }
 
 export default function DeliveryApp({
+  title,
   downloadUrl,
+  coverImageUrl,
 }: {
+  title?: string;
   downloadUrl: string | null;
+  coverImageUrl?: string | null;
 }) {
   const [showReview, setShowReview] = useState(false);
   const [rating, setRating] = useState(0);
@@ -37,6 +41,18 @@ export default function DeliveryApp({
     await navigator.clipboard.writeText(target);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 3000);
+  };
+
+  const handleShareWhatsApp = () => {
+    const pageUrl = typeof window !== 'undefined' ? window.location.href : downloadUrl || '';
+    const message = title
+      ? `Confira as fotos de "${title}" por Artur Dias Fotografia: ${pageUrl}`
+      : `Confira as fotos prontas por Artur Dias Fotografia: ${pageUrl}`;
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(message)}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
   };
 
   const submitReview = async (e: React.FormEvent) => {
@@ -64,59 +80,102 @@ export default function DeliveryApp({
 
   return (
     <>
-      <div className="max-w-lg mx-auto text-center bg-white shadow-xl p-10 md:p-14 border border-neutral-100">
-        {/* Ícone Vetorial Minimalista de Entrega */}
-        <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-neutral-50 border border-neutral-200 flex items-center justify-center text-neutral-900">
-          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-          </svg>
-        </div>
-
-        <h2 className="text-xl font-bold uppercase tracking-widest mb-3">Suas fotos estão prontas!</h2>
-        <p className="text-gray-500 text-sm mb-8">
-          Clique no botão abaixo para baixar todas as suas fotos em qualidade original.
-        </p>
-
-        <button
-          onClick={handleDownload}
-          className="w-full bg-black text-white p-4 font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors flex items-center justify-center gap-3 cursor-pointer"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
-          </svg>
-          Baixar Fotos
-        </button>
-
-        <button
-          type="button"
-          onClick={handleCopyLink}
-          className="mt-3 w-full border border-gray-200 text-gray-700 p-3.5 text-xs font-bold uppercase tracking-widest hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-        >
-          {copiedLink ? (
-            <>
-              <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span className="text-green-600">Link Copiado!</span>
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Copiar Link para Download
-            </>
-          )}
-        </button>
-
-        {!showReview && !done && (
-          <button
-            onClick={() => setShowReview(true)}
-            className="mt-6 text-xs uppercase tracking-widest text-gray-400 hover:text-black transition-colors cursor-pointer"
-          >
-            Avaliar meu trabalho
-          </button>
+      <div className="max-w-xl mx-auto text-center bg-white shadow-xl border border-neutral-100 overflow-hidden">
+        {/* Banner Cinematográfico Comemorativo (se houver capa) */}
+        {coverImageUrl && (
+          <div className="relative w-full aspect-[16/9] bg-neutral-100 overflow-hidden">
+            <img
+              src={coverImageUrl}
+              alt={title || 'Capa da entrega'}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end justify-center p-5">
+              <span className="text-[10px] uppercase tracking-[0.28em] text-white/90 font-bold bg-black/40 backdrop-blur-md px-3 py-1 rounded-xs border border-white/15">
+                Arquivos Finais Prontos
+              </span>
+            </div>
+          </div>
         )}
+
+        <div className="p-8 sm:p-10 md:p-12">
+          {/* Ícone Vetorial Minimalista de Entrega (exibido quando não há banner de capa) */}
+          {!coverImageUrl && (
+            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-neutral-50 border border-neutral-200 flex items-center justify-center text-neutral-900">
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+            </div>
+          )}
+
+          <h2 className="text-xl font-bold uppercase tracking-widest mb-3">Suas memórias estão prontas!</h2>
+          <p className="text-gray-500 text-sm leading-relaxed mb-8 max-w-md mx-auto">
+            Foi uma alegria registrar esse momento. Clique abaixo para acessar e baixar todas as fotos em máxima resolução.
+          </p>
+
+          <button
+            onClick={handleDownload}
+            className="w-full bg-black text-white p-4 font-bold uppercase tracking-widest hover:bg-gray-800 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-3 cursor-pointer"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            Baixar Fotos em Alta Resolução
+          </button>
+
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="w-full border border-gray-200 text-gray-700 p-3.5 text-xs font-bold uppercase tracking-widest hover:border-black hover:text-black transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            >
+              {copiedLink ? (
+                <>
+                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-green-600">Link Copiado!</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copiar Link
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleShareWhatsApp}
+              className="w-full border border-gray-200 text-gray-700 p-3.5 text-xs font-bold uppercase tracking-widest hover:border-black hover:text-black transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+              Compartilhar
+            </button>
+          </div>
+
+          {/* Dica de Preservação */}
+          <div className="mt-8 pt-6 border-t border-neutral-100 text-left flex items-start gap-3">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 shrink-0 mt-0.5">
+              Dica:
+            </span>
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              Para preservar suas fotografias por muitos anos, recomendamos salvar uma cópia no seu computador e outra em nuvem (Google Drive ou iCloud).
+            </p>
+          </div>
+
+          {!showReview && !done && (
+            <button
+              onClick={() => setShowReview(true)}
+              className="mt-6 text-xs uppercase tracking-widest text-gray-500 hover:text-black font-semibold underline underline-offset-4 transition-colors cursor-pointer"
+            >
+              Avaliar meu trabalho
+            </button>
+          )}
+        </div>
       </div>
 
       {showReview && (

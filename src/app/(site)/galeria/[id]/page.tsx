@@ -1,5 +1,5 @@
 import { client } from "@/sanity/lib/client";
-import { urlForImage } from "@/sanity/lib/image";
+import { imageThumb, imageFull } from "@/sanity/lib/image";
 import { notFound } from "next/navigation";
 import LightboxGallery from "@/components/LightboxGallery";
 import { Link } from "next-view-transitions";
@@ -26,7 +26,8 @@ export default async function GaleriaPage({ params }: { params: Promise<{ id: st
   if (!gallery) notFound();
 
   const formattedImages = gallery.images?.map((img: any, index: number) => ({
-    url: urlForImage(img).width(1600).url(),
+    url: imageFull(img),
+    thumbUrl: imageThumb(img),
     alt: img.caption || `${gallery.title} - Imagem ${index + 1}`,
     aspectRatio: img.aspectRatio
   })) || [];
