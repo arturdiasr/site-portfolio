@@ -39,6 +39,7 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
   const requireEmail = !isLegacyGallery && album.requireEmail !== false;
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdminGhost, setIsAdminGhost] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [emailInput, setEmailInput] = useState('');
   const [clientEmail, setClientEmail] = useState('');
@@ -192,11 +193,23 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
     return { positions, totalHeight, colWidth, gap };
   }, [album.images, gridWidth, activeCols, videoRatios]);
 
-  // Usamos localStorage para manter o estado
+  // Usamos localStorage para manter o estado (exceto em Modo Admin Fantasma, que não grava rastros)
   useEffect(() => {
     setIsClient(true);
 
-    // Verifica se já estava logado antes
+    // 1. Verifica se há sessão de Admin Fantasma ativa na aba ou via query ?ghost=1
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasGhostQuery = urlParams.get('ghost') === '1';
+    const hasGhostSession = sessionStorage.getItem('artur_admin_ghost') === 'true';
+
+    if (hasGhostQuery || hasGhostSession) {
+      sessionStorage.setItem('artur_admin_ghost', 'true');
+      setIsAdminGhost(true);
+      setIsAuthenticated(true);
+      return;
+    }
+
+    // 2. Verifica se já estava logado antes como cliente normal
     const authStatus = localStorage.getItem(`auth_${album.slug}`);
     const savedEmail = localStorage.getItem(`client_email_${album.slug}`) || '';
 
@@ -210,19 +223,49 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
     } else {
       const tempPwd = localStorage.getItem(`temp_pwd_${album.slug}`);
       if (tempPwd) {
-        if (tempPwd === album.password) {
-          if (!requireEmail) {
-            setIsAuthenticated(true);
-            localStorage.setItem(`auth_${album.slug}`, 'true');
-          } else {
-            setPasswordInput(tempPwd);
-          }
-        } else {
-          setPasswordInput(tempPwd);
-          setError(true);
-          setErrorMessage('Senha Incorreta');
-        }
         localStorage.removeItem(`temp_pwd_${album.slug}`);
+        // Verifica primeiro se a senha vinda do /cliente é a Senha Mestre de Admin
+        fetch('/api/admin-albums', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: tempPwd, action: 'verify' }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data?.isAdmin) {
+              sessionStorage.setItem('artur_admin_ghost', 'true');
+              sessionStorage.setItem('artur_admin_ghost_pwd', tempPwd);
+              setIsAdminGhost(true);
+              setIsAuthenticated(true);
+              return;
+            }
+            if (tempPwd === album.password) {
+              if (!requireEmail) {
+                setIsAuthenticated(true);
+                localStorage.setItem(`auth_${album.slug}`, 'true');
+              } else {
+                setPasswordInput(tempPwd);
+              }
+            } else {
+              setPasswordInput(tempPwd);
+              setError(true);
+              setErrorMessage('Senha Incorreta');
+            }
+          })
+          .catch(() => {
+            if (tempPwd === album.password) {
+              if (!requireEmail) {
+                setIsAuthenticated(true);
+                localStorage.setItem(`auth_${album.slug}`, 'true');
+              } else {
+                setPasswordInput(tempPwd);
+              }
+            } else {
+              setPasswordInput(tempPwd);
+              setError(true);
+              setErrorMessage('Senha Incorreta');
+            }
+          });
       }
     }
 
@@ -239,16 +282,16 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
     }
   }, [album.slug, album.password, requireEmail]);
 
-  // Salva seleções ao alterar no localStorage
+  // Salva seleções ao alterar no localStorage (somente para cliente real, NUNCA em modo Admin Fantasma)
   useEffect(() => {
-    if (isClient) {
+    if (isClient && !isAdminGhost) {
       localStorage.setItem(`selections_${album.slug}`, JSON.stringify(selectedFiles));
     }
-  }, [selectedFiles, album.slug, isClient]);
+  }, [selectedFiles, album.slug, isClient, isAdminGhost]);
 
-  // Sincroniza seleções em tempo real com o Sanity para monitoramento no Studio
+  // Sincroniza seleções em tempo real com o Sanity para monitoramento no Studio (desativado em modo Admin Fantasma)
   useEffect(() => {
-    if (!isClient || !isAuthenticated) return;
+    if (!isClient || !isAuthenticated || isAdminGhost) return;
 
     const timer = setTimeout(() => {
       fetch('/api/client-selections', {
@@ -269,7 +312,7 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [selectedFiles, album.slug, album.title, clientEmail, isClient, isAuthenticated, requireEmail]);
+  }, [selectedFiles, album.slug, album.title, clientEmail, isClient, isAuthenticated, requireEmail, isAdminGhost]);
 
   // Keyboard events for Lightbox
   useEffect(() => {
@@ -303,8 +346,30 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
     touchStartX.current = null;
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 1. Verifica se a senha digitada é a Senha Mestre de Admin (Modo Fantasma sem rastro e sem exigir e-mail)
+    try {
+      const res = await fetch('/api/admin-albums', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: passwordInput, action: 'verify' }),
+      });
+      const data = await res.json();
+      if (data?.isAdmin) {
+        sessionStorage.setItem('artur_admin_ghost', 'true');
+        sessionStorage.setItem('artur_admin_ghost_pwd', passwordInput);
+        setIsAdminGhost(true);
+        setIsAuthenticated(true);
+        setError(false);
+        setErrorMessage('');
+        return;
+      }
+    } catch {
+      // continua verificação normal do cliente
+    }
+
     if (passwordInput !== album.password) {
       setError(true);
       setErrorMessage('Senha Incorreta');
@@ -352,6 +417,12 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
   };
 
   const handleSendList = async () => {
+    if (isAdminGhost) {
+      alert(
+        'Modo Admin Fantasma ativo: o envio real para o Sanity/E-mail está bloqueado para garantir que nenhum rastro ou seleção seja criada neste álbum.'
+      );
+      return;
+    }
     setIsSending(true);
     try {
       const res = await fetch('/api/send-photos', {
@@ -426,7 +497,6 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 className="w-full p-4 border border-neutral-200 text-center text-sm focus:outline-none focus:border-black transition-colors"
-                required
               />
             )}
             <input
@@ -457,6 +527,41 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
   // TELA DA GALERIA
   return (
     <div className={`w-full pb-36 transition-all duration-500 ${sidebarOpen ? 'md:pr-96' : ''}`}>
+      {/* Barra Discreta de Modo Admin Fantasma */}
+      {isAdminGhost && (
+        <div className="mb-8 bg-neutral-900 text-white px-5 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-2.5 text-xs">
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-bold uppercase tracking-widest">
+              👁️ Modo Admin Fantasma (Sem Rastros)
+            </span>
+            <span className="hidden md:inline text-neutral-400">
+              — Nenhum acesso ou lista de fotos será salvo neste álbum.
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <a
+              href="/cliente"
+              className="text-[11px] uppercase tracking-widest font-bold bg-white/10 hover:bg-white/20 px-3 py-1.5 transition-colors"
+            >
+              Todos os Álbuns
+            </a>
+            <button
+              type="button"
+              onClick={() => {
+                sessionStorage.removeItem('artur_admin_ghost');
+                sessionStorage.removeItem('artur_admin_ghost_pwd');
+                setIsAdminGhost(false);
+                setIsAuthenticated(false);
+                setSelectedFiles([]);
+              }}
+              className="text-[11px] uppercase tracking-widest font-bold border border-white/20 hover:border-white px-3 py-1.5 transition-colors cursor-pointer"
+            >
+              Sair do Modo Admin
+            </button>
+          </div>
+        </div>
+      )}
       {/* Toast Animado Editorial */}
       <div
         className={`fixed top-8 left-1/2 -translate-x-1/2 z-[100] bg-neutral-950 text-white px-6 py-4 rounded-xs shadow-2xl border border-white/10 flex items-center gap-3 transition-all duration-500 transform ${

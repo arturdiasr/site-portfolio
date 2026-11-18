@@ -158,6 +158,14 @@ Pronto! Eu recebo a sua seleção e começo a edição das fotos escolhidas.`
         >
           {copiedLink ? '✓ Link copiado!' : '🔗 Copiar Link'}
         </button>
+        <a
+          href={`${link}?ghost=1`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ ...btn, background: '#0f172a', color: '#fff', border: 'none', padding: '12px 14px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+        >
+          👁️ Pré-visualizar (Sem Rastro)
+        </a>
       </div>
     </div>
   )
