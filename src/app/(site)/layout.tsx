@@ -7,7 +7,6 @@ import WhatsAppWidget from "@/components/WhatsAppWidget";
 import ScrollToTop from "@/components/ScrollToTop";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import SmoothScroll from "@/components/SmoothScroll";
-import CustomCursor from "@/components/CustomCursor";
 
 // Fonte "Outfit" traz um ar muito moderno, jovem e geométrico
 const mainFont = Outfit({
@@ -68,7 +67,6 @@ export default function SiteLayout({
   return (
     <div className={`${mainFont.className} antialiased min-h-screen flex flex-col text-black relative`}>
       <SmoothScroll />
-      <CustomCursor />
       <AnimatedBackground />
       <Header />
       <main className="flex-grow w-full mx-auto px-6 sm:px-10 md:px-16 xl:px-24 max-w-[2560px]">

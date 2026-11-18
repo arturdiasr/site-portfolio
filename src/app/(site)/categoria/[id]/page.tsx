@@ -1,5 +1,5 @@
 import { client } from "@/sanity/lib/client";
-import { imageThumb, imageFull } from "@/sanity/lib/image";
+import { urlForImage } from "@/sanity/lib/image";
 import { Link } from "next-view-transitions";
 import { notFound } from "next/navigation";
 import LightboxGallery from "@/components/LightboxGallery";
@@ -30,8 +30,7 @@ export default async function CategoriaPage({ params }: { params: Promise<{ id: 
   const subGalleries = await client.fetch(subQuery, { id });
 
   const looseImages = category.images?.map((img: any, index: number) => ({
-    url: imageFull(img),
-    thumbUrl: imageThumb(img),
+    url: urlForImage(img).width(1600).url(),
     alt: img.caption || `${category.title} - Foto solta ${index + 1}`,
     aspectRatio: img.aspectRatio
   })) || [];
@@ -62,15 +61,13 @@ export default async function CategoriaPage({ params }: { params: Promise<{ id: 
                   <Link
                     href={`/galeria/${gallery._id}`}
                     key={gallery._id}
-                    data-cursor="VER"
                     className="group relative break-inside-avoid mb-6 w-full block overflow-hidden bg-gray-50 cursor-pointer shadow-sm hover:shadow-xl transition-all"
                   >
                     <div className={`w-full ${aspectClass}`}>
                       {gallery.coverImage ? (
                         <img
-                          src={imageThumb(gallery.coverImage)}
+                          src={urlForImage(gallery.coverImage).url()}
                           alt={gallery.title}
-                          loading="lazy"
                           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                         />
                       ) : (

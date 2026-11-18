@@ -20,8 +20,6 @@ export default function RotatingCardImage({
   indexOffset = 0,
   className = 'object-cover transition-transform duration-1000 group-hover:scale-105',
 }: RotatingCardImageProps) {
-  const [loadedSingle, setLoadedSingle] = useState(false);
-
   if (!images || images.length === 0) {
     return (
       <div className="w-full h-full bg-gray-200 flex items-center justify-center text-xs text-gray-400">
@@ -40,8 +38,7 @@ export default function RotatingCardImage({
           unoptimized
           priority={priority}
           sizes={sizes}
-          onLoad={() => setLoadedSingle(true)}
-          className={`${className} ${loadedSingle ? 'opacity-100' : 'opacity-0'} transition-opacity duration-500`}
+          className={className}
         />
       </div>
     );
@@ -69,37 +66,19 @@ function RotatingCardCarousel({
 }: RotatingCardImageProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
-  const [isInView, setIsInView] = useState(priority);
-  const containerRef = useRef<HTMLDivElement>(null);
   const isHoveredRef = useRef(isHovered);
-  const preloadedSetRef = useRef<Set<string>>(new Set());
   isHoveredRef.current = isHovered;
 
-  const preloadUrl = (url?: string) => {
-    if (!url || typeof window === 'undefined' || preloadedSetRef.current.has(url)) return;
-    preloadedSetRef.current.add(url);
-    const img = new window.Image();
-    img.src = url;
-  };
-
-  // Observa visibilidade no viewport para só rotacionar e pré-carregar cards próximos da tela
+  // Pré-carrega todas as imagens na memória na URL exata do Sanity CDN
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') {
-      setIsInView(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInView(entry.isIntersecting);
-      },
-      { rootMargin: '250px 0px' }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+    if (typeof window === 'undefined' || !images || images.length <= 1) return;
+    images.forEach((url) => {
+      if (url) {
+        const img = new window.Image();
+        img.src = url;
+      }
+    });
+  }, [images]);
 
   // Ao montar no cliente: sorteia a foto inicial para que cada visita traga uma foto diferente
   useEffect(() => {
@@ -109,16 +88,9 @@ function RotatingCardCarousel({
     }
   }, [images.length]);
 
-  // Pré-carrega sob demanda apenas a próxima foto quando o card entra em vista
+  // Ciclo de rotação com delay longo e orgânico (desfasado entre cards)
   useEffect(() => {
-    if (!isInView || images.length <= 1) return;
-    const nextIdx = (currentIndex + 1) % images.length;
-    preloadUrl(images[nextIdx]);
-  }, [isInView, currentIndex, images]);
-
-  // Ciclo de rotação com delay longo e orgânico (desfasado entre cards), ativo apenas quando visível
-  useEffect(() => {
-    if (images.length <= 1 || !isInView) return;
+    if (images.length <= 1) return;
 
     const staggeredDelay = 8500 + (indexOffset % 5) * 1200;
 
@@ -130,22 +102,17 @@ function RotatingCardCarousel({
         if (next === prev) {
           next = (prev + 1) % images.length;
         }
-        preloadUrl(images[next]);
         return next;
       });
     }, staggeredDelay);
 
     return () => clearInterval(interval);
-  }, [images, indexOffset, isInView]);
+  }, [images.length, indexOffset]);
 
   return (
     <div
-      ref={containerRef}
       className="absolute inset-0 w-full h-full overflow-hidden bg-neutral-100"
-      onMouseEnter={() => {
-        setIsHovered(true);
-        images.forEach(preloadUrl);
-      }}
+      onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {images.map((imgUrl, idx) => {
@@ -163,7 +130,6 @@ function RotatingCardCarousel({
               alt={alt}
               fill
               unoptimized
-              loading={priority && idx === 0 ? 'eager' : 'lazy'}
               priority={priority && idx === 0}
               sizes={sizes}
               className={className}

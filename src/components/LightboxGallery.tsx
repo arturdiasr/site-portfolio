@@ -6,30 +6,19 @@ import MasonryGrid from '@/components/MasonryGrid';
 
 interface LightboxImage {
   url: string;
-  thumbUrl?: string;
   alt: string;
   aspectRatio?: number;
 }
 
 export default function LightboxGallery({ images }: { images: LightboxImage[] }) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [isZoomed, setIsZoomed] = useState(false);
-  const [panOrigin, setPanOrigin] = useState({ x: 50, y: 50 });
   const touchStartX = useRef<number | null>(null);
-  const filmstripRef = useRef<HTMLDivElement | null>(null);
 
-  const close = useCallback(() => {
-    setSelectedIndex(null);
-    setIsZoomed(false);
-  }, []);
-
+  const close = useCallback(() => setSelectedIndex(null), []);
   const next = useCallback(() => {
-    setIsZoomed(false);
     setSelectedIndex((prev) => (prev !== null ? (prev + 1) % images.length : null));
   }, [images.length]);
-
   const prev = useCallback(() => {
-    setIsZoomed(false);
     setSelectedIndex((prev) => (prev !== null ? (prev - 1 + images.length) % images.length : null));
   }, [images.length]);
 
@@ -63,39 +52,17 @@ export default function LightboxGallery({ images }: { images: LightboxImage[] })
     });
   }, [selectedIndex, images]);
 
-  // Centraliza a miniatura ativa na faixa inferior (filmstrip)
-  useEffect(() => {
-    if (selectedIndex === null || !filmstripRef.current) return;
-    const activeThumb = filmstripRef.current.querySelector<HTMLElement>(
-      `[data-thumb-index="${selectedIndex}"]`
-    );
-    if (activeThumb) {
-      activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }
-  }, [selectedIndex]);
-
   // Suporte a Touch Swipe para Smartphones e Tablets
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null || isZoomed) return;
+    if (touchStartX.current === null) return;
     const diff = touchStartX.current - e.changedTouches[0].clientX;
     if (diff > 45) next();
     if (diff < -45) prev();
     touchStartX.current = null;
-  };
-
-  const handleImageMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isZoomed) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setPanOrigin({
-      x: Math.max(0, Math.min(100, x)),
-      y: Math.max(0, Math.min(100, y)),
-    });
   };
 
   return (
@@ -108,13 +75,12 @@ export default function LightboxGallery({ images }: { images: LightboxImage[] })
           return (
             <div
               key={index}
-              data-cursor="AMPLIAR"
               className={`group relative break-inside-avoid mb-6 w-full block overflow-hidden bg-neutral-100 shadow-sm hover:shadow-xl transition-all duration-500 cursor-zoom-in ${aspectClass}`}
               onClick={() => setSelectedIndex(index)}
               onContextMenu={(e) => e.preventDefault()}
             >
               <img
-                src={img.thumbUrl || img.url}
+                src={img.url}
                 alt={img.alt}
                 className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-700 ease-out group-hover:scale-[1.025]"
                 loading="lazy"
@@ -141,55 +107,29 @@ export default function LightboxGallery({ images }: { images: LightboxImage[] })
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-[110] bg-neutral-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4 select-none"
+            className="fixed inset-0 z-[110] bg-neutral-950/95 backdrop-blur-md flex items-center justify-center p-4 select-none"
             onClick={close}
             onContextMenu={(e) => e.preventDefault()}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
-            {/* Barra Superior: Contador Numérico + Zoom + Botão Fechar */}
+            {/* Barra Superior: Contador Numérico + Botão Fechar */}
             <div className="absolute top-0 left-0 right-0 p-5 md:p-7 flex justify-between items-center text-white/80 z-[120] pointer-events-none">
               <span className="font-mono text-xs tracking-[0.25em] text-neutral-300 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xs border border-white/10 pointer-events-auto">
                 {String(selectedIndex + 1).padStart(2, '0')} <span className="text-neutral-500">/</span> {String(images.length).padStart(2, '0')}
               </span>
 
-              <div className="flex items-center gap-2.5 pointer-events-auto">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsZoomed((z) => !z);
-                  }}
-                  className={`flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] font-semibold px-3 py-2 rounded-xs border transition-all cursor-pointer backdrop-blur-md ${
-                    isZoomed
-                      ? 'bg-white text-black border-white'
-                      : 'bg-black/40 hover:bg-black/70 text-white/80 hover:text-white border-white/10'
-                  }`}
-                  aria-label={isZoomed ? 'Reduzir zoom' : 'Inspecionar detalhes (Zoom)'}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                    {isZoomed ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 8v6M8 11h6M19 11a8 8 0 11-16 0 8 8 0 0116 0z" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 8v6M8 11h6M19 11a8 8 0 11-16 0 8 8 0 0116 0z" />
-                    )}
-                  </svg>
-                  <span className="hidden sm:inline">{isZoomed ? '100%' : 'Detalhe'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-white/80 hover:text-white bg-black/40 hover:bg-black/70 backdrop-blur-md px-3.5 py-2 rounded-xs border border-white/10 transition-all cursor-pointer group"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    close();
-                  }}
-                  aria-label="Fechar visualização"
-                >
-                  <span className="hidden sm:inline text-[10px] font-semibold">Fechar</span>
-                  <span className="text-lg leading-none group-hover:rotate-90 transition-transform duration-300">&times;</span>
-                </button>
-              </div>
+              <button
+                className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-white/80 hover:text-white bg-black/40 hover:bg-black/70 backdrop-blur-md px-3.5 py-2 rounded-xs border border-white/10 transition-all cursor-pointer group pointer-events-auto"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  close();
+                }}
+                aria-label="Fechar visualização"
+              >
+                <span className="hidden sm:inline text-[10px] font-semibold">Fechar</span>
+                <span className="text-lg leading-none group-hover:rotate-90 transition-transform duration-300">&times;</span>
+              </button>
             </div>
 
             {/* Setas de Navegação Laterais */}
@@ -223,75 +163,27 @@ export default function LightboxGallery({ images }: { images: LightboxImage[] })
               </>
             )}
 
-            {/* Imagem Central com Transição Suave e Inspeção por Zoom */}
+            {/* Imagem Central com Transição Suave */}
             <motion.div
               key={selectedIndex}
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
               transition={{ duration: 0.25, ease: 'easeOut' }}
-              className={`relative max-w-[92vw] ${
-                images.length > 1 ? 'max-h-[75vh] mb-14' : 'max-h-[85vh]'
-              } flex flex-col items-center justify-center overflow-hidden ${
-                isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsZoomed((z) => !z);
-              }}
-              onMouseMove={handleImageMouseMove}
+              className="relative max-w-[92vw] max-h-[85vh] flex flex-col items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
             >
               <img
                 src={images[selectedIndex].url}
                 alt={images[selectedIndex].alt}
-                style={
-                  isZoomed
-                    ? {
-                        transform: 'scale(1.85)',
-                        transformOrigin: `${panOrigin.x}% ${panOrigin.y}%`,
-                      }
-                    : undefined
-                }
-                className={`max-w-full ${
-                  images.length > 1 ? 'max-h-[73vh]' : 'max-h-[82vh]'
-                } object-contain select-none pointer-events-none shadow-2xl transition-transform duration-300 ease-out`}
+                className="max-w-full max-h-[82vh] object-contain select-none pointer-events-none shadow-2xl"
               />
             </motion.div>
 
-            {/* Faixa Inferior de Miniaturas (Filmstrip) */}
+            {/* Dica de Swipe no Mobile */}
             {images.length > 1 && (
-              <div
-                ref={filmstripRef}
-                onClick={(e) => e.stopPropagation()}
-                className="absolute bottom-4 left-1/2 -translate-x-1/2 max-w-[90vw] md:max-w-[70vw] flex items-center gap-2 overflow-x-auto px-3 py-2 bg-black/50 backdrop-blur-md border border-white/10 rounded-xs z-[120] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-              >
-                {images.map((item, idx) => {
-                  const isActive = idx === selectedIndex;
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      data-thumb-index={idx}
-                      onClick={() => {
-                        setIsZoomed(false);
-                        setSelectedIndex(idx);
-                      }}
-                      aria-label={`Ir para foto ${idx + 1}`}
-                      className={`relative flex-none w-11 h-11 md:w-13 md:h-13 overflow-hidden transition-all duration-300 cursor-pointer ${
-                        isActive
-                          ? 'ring-2 ring-white opacity-100 scale-105'
-                          : 'opacity-45 hover:opacity-80'
-                      }`}
-                    >
-                      <img
-                        src={item.thumbUrl || item.url}
-                        alt=""
-                        loading="lazy"
-                        className="w-full h-full object-cover pointer-events-none"
-                      />
-                    </button>
-                  );
-                })}
+              <div className="sm:hidden absolute bottom-5 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[0.25em] text-white/40 pointer-events-none">
+                Deslize para navegar
               </div>
             )}
           </motion.div>
