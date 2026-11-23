@@ -6,7 +6,8 @@ import { featuredVideoType } from './featuredVideoType'
 import { deliveryType } from './deliveryType'
 import { testimonialType } from './testimonialType'
 import { clientSelectionType } from './clientSelectionType'
+import { siteConfigType } from './siteConfigType'
 
 export const schema: { types: SchemaTypeDefinition[] } = {
-  types: [categoryType, galleryType, clientAlbumType, clientSelectionType, featuredVideoType, deliveryType, testimonialType],
+  types: [categoryType, galleryType, clientAlbumType, clientSelectionType, featuredVideoType, deliveryType, testimonialType, siteConfigType],
 }
