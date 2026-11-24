@@ -48,6 +48,36 @@ export const clientSelectionType = defineType({
       of: [{ type: 'string' }],
     }),
     defineField({
+      name: 'photoComments',
+      title: 'Comentários por Foto',
+      description: 'Observações enviadas pelo cliente para fotos específicas (ex: remover objeto, ajuste de edição).',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          name: 'photoComment',
+          fields: [
+            defineField({
+              name: 'filename',
+              title: 'Arquivo',
+              type: 'string',
+            }),
+            defineField({
+              name: 'comment',
+              title: 'Comentário / Observação',
+              type: 'text',
+            }),
+          ],
+          preview: {
+            select: {
+              title: 'filename',
+              subtitle: 'comment',
+            },
+          },
+        },
+      ],
+    }),
+    defineField({
       name: 'lastActivityAt',
       title: 'Última Interação',
       type: 'datetime',

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { urlForImage } from "@/sanity/lib/image";
+import { stripExt } from "@/lib/photoComments";
 
 type ClientAlbumItem = {
   _type?: string;
@@ -20,8 +21,6 @@ type ClientAlbumData = {
   coverImage: any;
   images: ClientAlbumItem[];
 };
-
-const stripExt = (name?: string) => String(name || '').replace(/\.[^/.]+$/, '');
 
 const isVideoItem = (item?: ClientAlbumItem) => {
   if (!item) return false;
@@ -46,8 +45,10 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Lista de nomes de arquivos selecionados
+  // Lista de nomes de arquivos selecionados e comentários por foto
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [photoComments, setPhotoComments] = useState<Record<string, string>>({});
+  const [commentDrawerOpen, setCommentDrawerOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   // Novos estados para lightbox, toast e sidebar
@@ -280,16 +281,39 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
         }
       } catch (e) {}
     }
+
+    const savedComments = localStorage.getItem(`comments_${album.slug}`);
+    if (savedComments) {
+      try {
+        const parsed = JSON.parse(savedComments);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          const normalizedComments: Record<string, string> = {};
+          for (const [k, v] of Object.entries(parsed)) {
+            const cleanKey = stripExt(k);
+            if (cleanKey && typeof v === 'string' && v.length > 0) {
+              normalizedComments[cleanKey] = v;
+            }
+          }
+          setPhotoComments(normalizedComments);
+        }
+      } catch (e) {}
+    }
   }, [album.slug, album.password, requireEmail]);
 
-  // Salva seleções ao alterar no localStorage (somente para cliente real, NUNCA em modo Admin Fantasma)
+  // Salva seleções e comentários ao alterar no localStorage (somente para cliente real, NUNCA em modo Admin Fantasma)
   useEffect(() => {
     if (isClient && !isAdminGhost) {
       localStorage.setItem(`selections_${album.slug}`, JSON.stringify(selectedFiles));
     }
   }, [selectedFiles, album.slug, isClient, isAdminGhost]);
 
-  // Sincroniza seleções em tempo real com o Sanity para monitoramento no Studio (desativado em modo Admin Fantasma)
+  useEffect(() => {
+    if (isClient && !isAdminGhost) {
+      localStorage.setItem(`comments_${album.slug}`, JSON.stringify(photoComments));
+    }
+  }, [photoComments, album.slug, isClient, isAdminGhost]);
+
+  // Sincroniza seleções e comentários em tempo real com o Sanity para monitoramento no Studio (desativado em modo Admin Fantasma)
   useEffect(() => {
     if (!isClient || !isAuthenticated || isAdminGhost) return;
 
@@ -304,6 +328,7 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
           albumTitle: album.title,
           clientEmail: clientEmail || (requireEmail ? '' : 'cliente-direto'),
           selectedFiles: selectedFiles,
+          photoComments: photoComments,
           status: 'in_progress',
         }),
       }).catch((err) => {
@@ -312,13 +337,26 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [selectedFiles, album.slug, album.title, clientEmail, isClient, isAuthenticated, requireEmail, isAdminGhost]);
+  }, [selectedFiles, photoComments, album.slug, album.title, clientEmail, isClient, isAuthenticated, requireEmail, isAdminGhost]);
 
   // Keyboard events for Lightbox
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (selectedIndex === null) return;
-      if (e.key === 'Escape') setSelectedIndex(null);
+      if (e.key === 'Escape') {
+        if (commentDrawerOpen) {
+          setCommentDrawerOpen(false);
+        } else {
+          setSelectedIndex(null);
+        }
+        return;
+      }
+
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
       if (e.key === 'ArrowRight') {
         setSelectedIndex((prev) => (prev! + 1) % (album.images?.length || 1));
       }
@@ -328,7 +366,7 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIndex, album.images]);
+  }, [selectedIndex, album.images, commentDrawerOpen]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -411,6 +449,25 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
     });
   };
 
+  const updatePhotoComment = (rawFilename: string, comment: string) => {
+    const filename = stripExt(rawFilename);
+    if (!filename) return;
+    setPhotoComments((prev) => {
+      if (comment.length === 0) {
+        if (!(filename in prev)) return prev;
+        const next = { ...prev };
+        delete next[filename];
+        return next;
+      }
+      return { ...prev, [filename]: comment };
+    });
+  };
+
+  const commentCount = useMemo(
+    () => Object.values(photoComments).filter((c) => c.trim().length > 0).length,
+    [photoComments]
+  );
+
   const handleMinimizeSidebar = () => {
     setSidebarOpen(false);
     setHasMinimizedSidebar(true);
@@ -434,7 +491,8 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
           albumTitle: album.title,
           albumSlug: album.slug,
           clientEmail: clientEmail,
-          selectedFiles: selectedFiles
+          selectedFiles: selectedFiles,
+          photoComments: photoComments
         })
       });
       if (res.ok) {
@@ -449,6 +507,7 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
             albumTitle: album.title,
             clientEmail: clientEmail || (requireEmail ? '' : 'cliente-direto'),
             selectedFiles: selectedFiles,
+            photoComments: photoComments,
             status: 'submitted',
           }),
         }).catch(() => {});
@@ -554,6 +613,7 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
                 setIsAdminGhost(false);
                 setIsAuthenticated(false);
                 setSelectedFiles([]);
+                setPhotoComments({});
               }}
               className="text-[11px] uppercase tracking-widest font-bold border border-white/20 hover:border-white px-3 py-1.5 transition-colors cursor-pointer"
             >
@@ -587,6 +647,11 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
             <h3 className="font-bold uppercase tracking-[0.2em] text-xs text-neutral-900">
               Selecionadas ({selectedFiles.length})
             </h3>
+            {commentCount > 0 && (
+              <p className="text-[11px] text-neutral-500 mt-0.5">
+                {commentCount} {commentCount === 1 ? 'comentário' : 'comentários'}
+              </p>
+            )}
             {clientEmail && (
               <p className="text-[11px] text-neutral-500 truncate mt-0.5">{clientEmail}</p>
             )}
@@ -609,39 +674,51 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
             selectedFiles.map(rawFilename => {
               const filename = stripExt(rawFilename);
               const img = album.images?.find(i => stripExt(i.originalFilename) === filename);
+              const commentValue = photoComments[filename] || '';
               return (
                 <div
                   key={filename}
-                  className="flex items-center gap-4 group bg-neutral-50/80 p-2.5 rounded-xs border border-neutral-100"
+                  className="flex flex-col gap-2.5 group bg-neutral-50/80 p-2.5 rounded-xs border border-neutral-100"
                 >
-                  {img ? (
-                    isVideoItem(img) ? (
-                      <video
-                        src={img.url}
-                        muted
-                        loop
-                        autoPlay
-                        playsInline
-                        className="w-14 h-14 object-cover rounded-xs shadow-xs bg-neutral-900 shrink-0"
-                      />
+                  <div className="flex items-center gap-3">
+                    {img ? (
+                      isVideoItem(img) ? (
+                        <video
+                          src={img.url}
+                          muted
+                          loop
+                          autoPlay
+                          playsInline
+                          className="w-14 h-14 object-cover rounded-xs shadow-xs bg-neutral-900 shrink-0"
+                        />
+                      ) : (
+                        <img src={img.url} alt={filename} className="w-14 h-14 object-cover rounded-xs shadow-xs shrink-0" />
+                      )
                     ) : (
-                      <img src={img.url} alt={filename} className="w-14 h-14 object-cover rounded-xs shadow-xs shrink-0" />
-                    )
-                  ) : (
-                    <div className="w-14 h-14 bg-neutral-200 rounded-xs shrink-0" />
-                  )}
-                  <span className="font-mono text-xs tracking-wider flex-1 truncate text-neutral-700">
-                    {filename}
-                  </span>
-                  <button
-                    onClick={() => toggleSelection(filename)}
-                    className="text-neutral-400 hover:text-red-500 transition-colors p-2 cursor-pointer"
-                    title="Remover da seleção"
-                  >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                  </button>
+                      <div className="w-14 h-14 bg-neutral-200 rounded-xs shrink-0" />
+                    )}
+                    <span className="font-mono text-xs tracking-wider flex-1 truncate text-neutral-700">
+                      {filename}
+                    </span>
+                    <button
+                      onClick={() => toggleSelection(filename)}
+                      className="text-neutral-400 hover:text-red-500 transition-colors p-2 cursor-pointer"
+                      title="Remover da seleção"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <textarea
+                      rows={2}
+                      value={commentValue}
+                      onChange={(e) => updatePhotoComment(filename, e.target.value)}
+                      placeholder="Comentário (ex: remover objeto, ajuste...)"
+                      className="w-full text-xs bg-white border border-neutral-200 focus:border-neutral-900 rounded-xs px-2.5 py-1.5 text-neutral-800 placeholder:text-neutral-400 focus:outline-none resize-none transition-colors"
+                    />
+                  </div>
                 </div>
               );
             })
@@ -673,7 +750,10 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
             className="fixed inset-0 z-[110] bg-neutral-950/95 flex items-center justify-center p-4 backdrop-blur-md select-none"
-            onClick={() => setSelectedIndex(null)}
+            onClick={() => {
+              setCommentDrawerOpen(false);
+              setSelectedIndex(null);
+            }}
             onContextMenu={(e) => e.preventDefault()}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
@@ -694,6 +774,7 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
                 className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-white/80 hover:text-white bg-black/40 hover:bg-black/70 backdrop-blur-md px-3.5 py-2 rounded-xs border border-white/10 transition-all cursor-pointer pointer-events-auto"
                 onClick={(e) => {
                   e.stopPropagation();
+                  setCommentDrawerOpen(false);
                   setSelectedIndex(null);
                 }}
               >
@@ -757,8 +838,51 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
               </svg>
             </button>
 
-            {/* Botão Favoritar no Lightbox */}
-            <div className="absolute bottom-7 left-1/2 -translate-x-1/2 z-[120]">
+            {/* Painel flutuante de Comentário no Lightbox */}
+            {commentDrawerOpen && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[125] w-[calc(100%-2rem)] max-w-md bg-neutral-900/95 backdrop-blur-md border border-white/15 rounded-xs p-4 shadow-2xl text-white"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-300 truncate">
+                    Comentário • {stripExt(album.images[selectedIndex].originalFilename)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCommentDrawerOpen(false)}
+                    className="text-neutral-400 hover:text-white text-xs uppercase tracking-widest cursor-pointer"
+                  >
+                    Fechar
+                  </button>
+                </div>
+                <textarea
+                  rows={3}
+                  autoFocus
+                  value={photoComments[stripExt(album.images[selectedIndex].originalFilename)] || ''}
+                  onChange={(e) =>
+                    updatePhotoComment(album.images![selectedIndex!].originalFilename, e.target.value)
+                  }
+                  placeholder="Ex: remover objeto no fundo, suavizar pele, ajustar corte..."
+                  className="w-full bg-black/50 border border-white/20 focus:border-white/60 rounded-xs p-3 text-sm text-white placeholder:text-neutral-400 focus:outline-none resize-none"
+                />
+                <div className="flex items-center justify-between mt-2.5">
+                  <span className="text-[10px] text-neutral-400">
+                    Salvo automaticamente na sua seleção
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCommentDrawerOpen(false)}
+                    className="px-3.5 py-1.5 bg-white text-black text-[10px] font-bold uppercase tracking-[0.2em] rounded-xs hover:bg-neutral-200 transition-colors cursor-pointer"
+                  >
+                    Concluir
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Botões Favoritar e Comentar no Lightbox */}
+            <div className="absolute bottom-7 left-1/2 -translate-x-1/2 z-[120] flex items-center gap-3">
               <button
                 className={`px-6 py-3.5 rounded-full flex items-center gap-2.5 transition-all duration-300 shadow-2xl cursor-pointer text-xs uppercase tracking-[0.2em] font-bold ${
                   selectedFiles.includes(stripExt(album.images[selectedIndex].originalFilename))
@@ -797,6 +921,38 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
                       : 'Selecionar Foto'}
                 </span>
               </button>
+
+              {(() => {
+                const currentKey = stripExt(album.images[selectedIndex].originalFilename);
+                const hasComment = Boolean(photoComments[currentKey]?.trim());
+                return (
+                  <button
+                    type="button"
+                    className={`px-5 py-3.5 rounded-full flex items-center gap-2 transition-all duration-300 shadow-2xl cursor-pointer text-xs uppercase tracking-[0.2em] font-bold ${
+                      commentDrawerOpen || hasComment
+                        ? 'bg-amber-400 text-neutral-950 hover:bg-amber-300'
+                        : 'bg-black/60 text-white hover:bg-black/85 border border-white/20 backdrop-blur-md'
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCommentDrawerOpen((prev) => !prev);
+                    }}
+                    title="Adicionar comentário ou pedido de ajuste para esta foto"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 8h10M7 12h6m-8 8l4-4h10a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <span className="hidden sm:inline">
+                      {hasComment ? 'Comentário' : 'Comentar'}
+                    </span>
+                  </button>
+                );
+              })()}
             </div>
           </motion.div>
         )}
@@ -992,10 +1148,45 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
               <div
                 className={`absolute ${
                   isCompactCard ? 'bottom-1.5 left-1.5 px-1.5 py-0.5 text-[8px]' : 'bottom-3 left-3 px-2.5 py-1 text-[10px]'
-                } bg-black/55 backdrop-blur-sm text-white font-mono tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none truncate max-w-[85%]`}
+                } bg-black/55 backdrop-blur-sm text-white font-mono tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none truncate max-w-[70%]`}
               >
                 {fileKey || 'S/ NOME'}
               </div>
+
+              {/* Botão / Indicador de Comentário no Card */}
+              {(() => {
+                const hasComment = Boolean(photoComments[fileKey]?.trim());
+                return (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedIndex(index);
+                      setCommentDrawerOpen(true);
+                    }}
+                    title={hasComment ? `Comentário: ${photoComments[fileKey]}` : 'Adicionar comentário nesta foto'}
+                    className={`absolute ${
+                      isCompactCard ? 'bottom-1.5 right-1.5 w-7 h-7' : 'bottom-3 right-3 px-2.5 py-1.5'
+                    } rounded-full flex items-center justify-center gap-1.5 z-10 cursor-pointer transition-all duration-300 ${
+                      hasComment
+                        ? 'bg-amber-400 text-neutral-950 opacity-100 shadow-md'
+                        : 'bg-black/45 text-white opacity-90 md:opacity-0 md:group-hover:opacity-100 hover:bg-black/75 backdrop-blur-sm'
+                    }`}
+                  >
+                    <svg className={isCompactCard ? 'w-3.5 h-3.5' : 'w-3.5 h-3.5'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 8h10M7 12h6m-8 8l4-4h10a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    {!isCompactCard && hasComment && (
+                      <span className="text-[9px] font-bold uppercase tracking-wider">Nota</span>
+                    )}
+                  </button>
+                );
+              })()}
 
               {/* Destaque Editorial de Foto/Vídeo Selecionado */}
               {isSelected && (
@@ -1029,6 +1220,7 @@ export default function ClientGalleryApp({ album }: { album: ClientAlbumData }) 
           </p>
           <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">
             de {album.images?.length || 0} fotos totais
+            {commentCount > 0 ? ` • ${commentCount} ${commentCount === 1 ? 'comentário' : 'comentários'}` : ''}
           </p>
         </div>
 

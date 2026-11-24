@@ -1,18 +1,20 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { createClient } from 'next-sanity';
+import { escapeHtml, normalizePhotoComments, stripExt } from '@/lib/photoComments';
 
 export async function POST(req: Request) {
   try {
-    const { albumTitle, albumSlug, clientEmail, clientName, selectedFiles } = await req.json();
+    const { albumTitle, albumSlug, clientEmail, clientName, selectedFiles, photoComments } = await req.json();
 
     if (!selectedFiles || selectedFiles.length === 0) {
       return NextResponse.json({ error: 'Nenhuma foto selecionada.' }, { status: 400 });
     }
 
     const cleanSelectedFiles: string[] = selectedFiles.map((f: unknown) =>
-      String(f).replace(/\.[^/.]+$/, '')
+      stripExt(String(f))
     );
+    const normalizedComments = normalizePhotoComments(photoComments);
 
     const emailIdentifier = clientEmail ? String(clientEmail).trim() : (clientName ? String(clientName).trim() : '');
 
@@ -44,6 +46,7 @@ export async function POST(req: Request) {
           albumTitle: String(albumTitle || albumSlug),
           clientEmail: emailIdentifier,
           selectedFiles: cleanSelectedFiles,
+          photoComments: normalizedComments,
           photoCount: cleanSelectedFiles.length,
           status: 'submitted',
           submittedAt: now,
@@ -64,21 +67,41 @@ export async function POST(req: Request) {
     });
 
     const fileList = cleanSelectedFiles.join(', ');
+    const commentsText =
+      normalizedComments.length > 0
+        ? `\n\nComentários por Foto (${normalizedComments.length}):\n` +
+          normalizedComments.map((c) => `- ${c.filename}: ${c.comment}`).join('\n')
+        : '';
+    const commentsHtml =
+      normalizedComments.length > 0
+        ? `
+        <p style="margin-top: 20px;"><strong>Comentários por Foto (${normalizedComments.length}):</strong></p>
+        <ul style="background-color: #fffbeb; border: 1px solid #fde68a; padding: 15px 15px 15px 30px; border-radius: 5px; margin: 0;">
+          ${normalizedComments
+            .map(
+              (c) =>
+                `<li style="margin-bottom: 8px;"><strong>${escapeHtml(c.filename)}:</strong> ${escapeHtml(c.comment).replace(/\n/g, '<br />')}</li>`
+            )
+            .join('')}
+        </ul>
+      `
+        : '';
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: 'arturdiasr@gmail.com',
       subject: `Seleção de Fotos: ${albumTitle}${emailIdentifier ? ` (${emailIdentifier})` : ''}`,
-      text: `O cliente (${emailIdentifier || 'Não informado'}) finalizou a seleção de fotos do ensaio "${albumTitle}".\n\nE-mail do Cliente: ${emailIdentifier || 'Não informado'}\nQuantidade: ${cleanSelectedFiles.length} fotos.\n\nLista para o Lightroom:\n${fileList}`,
+      text: `O cliente (${emailIdentifier || 'Não informado'}) finalizou a seleção de fotos do ensaio "${albumTitle}".\n\nE-mail do Cliente: ${emailIdentifier || 'Não informado'}\nQuantidade: ${cleanSelectedFiles.length} fotos.\n\nLista para o Lightroom:\n${fileList}${commentsText}`,
       html: `
-        <h2>Seleção de Fotos: ${albumTitle}</h2>
+        <h2>Seleção de Fotos: ${escapeHtml(String(albumTitle || ''))}</h2>
         <p>O cliente finalizou a seleção de fotos e enviou para edição.</p>
-        <p><strong>E-mail do Cliente:</strong> ${emailIdentifier || 'Não informado'}</p>
+        <p><strong>E-mail do Cliente:</strong> ${escapeHtml(emailIdentifier || 'Não informado')}</p>
         <p><strong>Quantidade:</strong> ${cleanSelectedFiles.length} fotos.</p>
         <p><strong>Lista para o Lightroom:</strong></p>
         <div style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; font-family: monospace; word-break: break-all;">
-          ${fileList}
+          ${escapeHtml(fileList)}
         </div>
+        ${commentsHtml}
       `,
     };
 

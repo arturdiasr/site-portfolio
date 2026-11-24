@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useClient, useFormValue, type StringInputProps } from 'sanity'
 
+type PhotoCommentItem = {
+  filename?: string
+  comment?: string
+}
+
 type SelectionItem = {
   _id: string
   albumTitle?: string
@@ -9,6 +14,7 @@ type SelectionItem = {
   status?: string
   photoCount?: number
   selectedFiles?: string[]
+  photoComments?: PhotoCommentItem[]
   lastActivityAt?: string
   submittedAt?: string
 }
@@ -57,6 +63,10 @@ export function ClientSelectionsViewer(_props: StringInputProps) {
             status,
             photoCount,
             selectedFiles,
+            photoComments[]{
+              filename,
+              comment
+            },
             lastActivityAt,
             submittedAt
           }`,
@@ -186,6 +196,12 @@ export function ClientSelectionsViewer(_props: StringInputProps) {
           {selections.map((item) => {
             const isSubmitted = item.status === 'submitted'
             const files = (item.selectedFiles || []).map(stripExt)
+            const comments = (item.photoComments || []).filter(
+              (c) => Boolean(c?.filename && c?.comment?.trim())
+            )
+            const commentMap = new Map<string, string>(
+              comments.map((c) => [stripExt(c.filename || ''), c.comment!.trim()])
+            )
             const isCopied = copiedId === item._id
             const showThumbs = expandedThumbs[item._id] ?? true
 
@@ -284,14 +300,60 @@ export function ClientSelectionsViewer(_props: StringInputProps) {
                 </div>
 
                 {/* Resumo da Contagem */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
                   <span>❤️ {files.length} fotos favoritadas</span>
+                  {comments.length > 0 && (
+                    <span
+                      style={{
+                        background: '#fef3c7',
+                        color: '#92400e',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: 999,
+                      }}
+                    >
+                      💬 {comments.length} {comments.length === 1 ? 'comentário' : 'comentários'}
+                    </span>
+                  )}
                   {files.length > 0 && (
                     <span style={{ color: '#64748b', fontSize: 12, fontWeight: 400 }}>
                       (Prontas para filtrar no Lightroom)
                     </span>
                   )}
                 </div>
+
+                {/* Comentários por Foto */}
+                {comments.length > 0 && (
+                  <div
+                    style={{
+                      background: '#fffbeb',
+                      border: '1px solid #fde68a',
+                      borderRadius: 6,
+                      padding: 10,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                    }}
+                  >
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      💬 Observações do Cliente
+                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 160, overflowY: 'auto' }}>
+                      {comments.map((c, idx) => (
+                        <div
+                          key={`${c.filename}-${idx}`}
+                          style={{ fontSize: 12, color: '#1e293b', lineHeight: 1.4 }}
+                        >
+                          <strong style={{ fontFamily: 'monospace', color: '#0f172a' }}>
+                            {stripExt(c.filename || '')}:
+                          </strong>{' '}
+                          <span>{c.comment}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Caixa com a lista em texto puro */}
                 {files.length > 0 && (
@@ -331,6 +393,7 @@ export function ClientSelectionsViewer(_props: StringInputProps) {
                     >
                       {files.map((filename) => {
                         const matched = albumImages.find((img) => stripExt(img.filename || '') === filename)
+                        const photoComment = commentMap.get(filename)
                         return (
                           <div
                             key={filename}
@@ -339,14 +402,33 @@ export function ClientSelectionsViewer(_props: StringInputProps) {
                               aspectRatio: '1/1',
                               borderRadius: 4,
                               overflow: 'hidden',
-                              border: '1px solid #e2e8f0',
+                              border: photoComment ? '2px solid #f59e0b' : '1px solid #e2e8f0',
                               background: '#e2e8f0',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                             }}
-                            title={filename}
+                            title={photoComment ? `${filename} — 💬 ${photoComment}` : filename}
                           >
+                            {photoComment && (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: 3,
+                                  right: 3,
+                                  background: '#f59e0b',
+                                  color: '#ffffff',
+                                  fontSize: 9,
+                                  lineHeight: 1,
+                                  padding: '2px 4px',
+                                  borderRadius: 4,
+                                  zIndex: 2,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                💬
+                              </div>
+                            )}
                             {matched?.url ? (
                               isVideoMeta(matched) ? (
                                 <video

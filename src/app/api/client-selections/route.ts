@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from 'next-sanity';
 import { client as readClient } from '@/sanity/lib/client';
+import { normalizePhotoComments, stripExt } from '@/lib/photoComments';
 
 export async function POST(req: Request) {
   try {
@@ -15,7 +16,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { albumSlug, albumTitle, clientEmail, selectedFiles, status } = body;
+    const { albumSlug, albumTitle, clientEmail, selectedFiles, photoComments, status } = body;
 
     if (!albumSlug) {
       return NextResponse.json({ error: 'albumSlug é obrigatório' }, { status: 400 });
@@ -35,8 +36,9 @@ export async function POST(req: Request) {
     const docId = `selection_${safeSlug}_${emailKey}`;
 
     const files = Array.isArray(selectedFiles)
-      ? selectedFiles.map((f) => String(f).replace(/\.[^/.]+$/, ''))
+      ? selectedFiles.map((f) => stripExt(String(f)))
       : [];
+    const normalizedComments = normalizePhotoComments(photoComments);
     const currentStatus = status === 'submitted' ? 'submitted' : 'in_progress';
     const now = new Date().toISOString();
 
@@ -47,6 +49,7 @@ export async function POST(req: Request) {
       albumTitle: String(albumTitle || albumSlug),
       clientEmail: rawEmail || '',
       selectedFiles: files,
+      photoComments: normalizedComments,
       photoCount: files.length,
       status: currentStatus,
       lastActivityAt: now,
@@ -83,6 +86,10 @@ export async function GET(req: Request) {
         status,
         photoCount,
         selectedFiles,
+        photoComments[]{
+          filename,
+          comment
+        },
         lastActivityAt,
         submittedAt
       }`,
